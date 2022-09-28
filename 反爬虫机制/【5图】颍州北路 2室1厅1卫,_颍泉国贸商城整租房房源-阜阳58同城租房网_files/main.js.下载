@@ -1,0 +1,198 @@
+// 主站右侧边栏 limengru 2018.08.08
+(function () {
+    $('#rightSusp').remove();
+    if(typeof(fromMess) == 'undefined'){
+		fromMess = "hpsidebar"
+	};
+    var css = 
+        '<style>' +
+            '#rightSideBar{' +
+                'display: block;' + 
+                'position: fixed;' +
+                'z-index: 900;' +
+                'bottom: 45px;' +
+                'right: 0;' +
+                'width: 50px;' +
+                'background-color: #fff;' +
+                'border: 1px solid #eee;' +
+                'border-bottom: 0;'+
+                '_position: absolute;'+
+                '_bottom: auto;'+
+                '_margin-bottom: 36px;'+
+            '}'+
+            '#rightSideBar .rightbtn{'+
+                'position: relative;'+
+                'height: 50px;'+
+                'border-bottom: 1px solid #eee;'+
+                'cursor: pointer;'+
+                'display : block;'+
+                'background: #fff;'+
+            '}'+
+            '#rightSideBar .app{'+
+                'height: 80px;'+
+            '}'+
+            '#rightSideBar .app .mess{'+
+                'display: block;'+
+                'left: 11px;'+
+                'text-align: center;'+
+                'font-size: 14px;'+
+                'color: #ff552e;'+
+                'font-weight: 400;'+
+                'height: 30px;'+
+                'line-height: 30px;'+
+                'font-style: normal;'+
+            '}'+
+            '#rightSideBar .icon{'+
+                'position: relative;'+
+                'left: 11px;'+
+                'top: 10px;'+
+                'display: block;'+
+                'width: 30px;'+
+                'height: 40px;'+
+            '}'+
+            '#rightSideBar .app .icon{'+
+                'top: 0;'+
+                'background: url(//img.58cdn.com.cn/resource/xxzl/public/icon_app.png) left no-repeat;'+
+            '}'+
+            '#rightSideBar .write .icon{'+
+                'height: 30px;'+
+                'background: url(//img.58cdn.com.cn/resource/xxzl/public/icon_write.png) left no-repeat;'+
+            '}'+
+            '#rightSideBar .toTop .icon{'+
+                'height: 30px;'+
+                'background: url(//img.58cdn.com.cn/resource/xxzl/public/icon_top.png) left no-repeat;'+
+            '}'+
+            '#rightSideBar .customerSer .icon{'+
+                'height: 30px;'+
+                // 'background: url(//img.58cdn.com.cn/ui6/my/images/ai_bb.png) left no-repeat;'+
+                'background: url(//img.58cdn.com.cn/resource/xxzl/big_custom_ser/pc_center/ai_bb.png) -4px no-repeat;' +
+                'background-size: 40px' +
+            '}'+
+            '#rightSideBar .rightbtn.hover .rightHov{'+
+                'position: absolute;'+
+                'margin: 0;'+
+                'left: 0;'+
+                'top: 0;'+
+                'text-align: center;' +
+                'line-height: 12px;' +
+                'font-size: 12px;' +
+                'color: #fff;' +
+                'width: 100%;' +
+                'height: 100%;' +
+                'background: #ff552e;' +
+            '}' +
+            '#rightSideBar .rightbtn.hover .rightHov em{' +
+                'display: inline-block;' +
+                'margin-top: 11px;' +
+                'width: 24px;' +
+                'line-height: 14px;' +
+                'font-style: normal;' +
+                'font-size: 12px;'+
+                'color: #fff;'+
+            '}' +
+            '#rightSideBar .rightbtn a{' +
+                'display: inline-block;' +
+                'position: absolute;' +
+                'width: 100%;' +
+                'height: 100%;' +
+                'z-index: 2;' +
+            '}' +
+            '#rightSideBar #rightHov {' +
+                'position: absolute;' +
+                'left: -170px;' +
+                'top: 0;' +
+                'background-color: #fff;' +
+                'text-align: center;' +
+                'width: 160px;' +
+                'border: 1px solid #ff552e;' +
+            '}'+
+            '#rightSideBar #rightHov .r_jiao {' +
+                'display: inline-block;' +
+                'height: 50px;' +
+                'width: 10px;' +
+                'position: absolute;' +
+                'top: 22px;' +
+                'right: -10px;' +
+                'background: url(//img.58cdn.com.cn/ui6/index/minico.png) no-repeat;' +
+                'background-position: 0 -382px;' +
+            '}' +
+            '#rightSideBar #rightHov p {' +
+                'font-size: 12px;' +
+                'color: #aaa;' +
+                'height: 30px;' +
+                'line-height: 30px;' +
+            '}' +
+            '#rightSideBar #rtHvBg {' +
+                'background: url(//img.58cdn.com.cn/ui6/index/2barcode.png?v=32) no-repeat;' +
+                'background-position: 0 -119px;' +
+                'width: 120px;' +
+                'height: 120px;' +
+                'margin: 0 auto;' +
+            '}' +
+            '#rightSideBar #rightHov p {' +
+                'font-size: 12px;' +
+                'color: #aaa;' +
+                'height: 30px;' +
+                'line-height: 30px;' +
+            '}' +
+        '</style>';
+    var _html = 
+        '<div id="rightSideBar">'+
+            '<div class="rightbtn app">'+
+                '<em class="mess">新版</em>'+
+                '<span class="icon"></span>'+
+                '<div id="rightHov" class="rightHov" style="display: none;">'+
+                    '<em class="r_jiao"></em>'+
+                    '<p>扫描下载58同城</p>'+
+                    '<div id="rtHvBg"></div>'+
+                    '<p>轻松找房 找工作 换二手</p>'+
+                '</div>'+
+            '</div>'+
+            '<div class="rightbtn write hover">'+
+                '<a href="//helps.58.com/base/feedback?siteId=5601&templateId=9501&terminal=PC&sourceType=58pc-zz-ycxf-jyfk" target="_blank"></a>'+
+                '<span class="icon"></span>'+
+                '<p class="rightHov" style="display: none">'+
+                    '<em>我要反馈</em>'+
+                '</p>'+
+            '</div>'+
+            '<div class="rightbtn customerSer hover">'+
+                // '<a href="//ai.58.com/pc/#/entry/joinfrom=hpsidebar" target="_blank"></a>'+
+                '<a href="https://helps.58.com/base/home?siteId=5601&terminal=PC&sourceType=58pc-zz-ycxf-khbz" target="_blank"></a>'+
+                '<span class="icon"></span>'+
+                '<p class="rightHov" style="display: none"><em>联系客服</em></p>'+
+            '</div>'+
+            '<div class="rightbtn toTop hover">' +
+                '<span class="icon"></span>' +
+                '<p class="rightHov" style="display: none"><em>返回顶部</em></p>' +
+            '</div>' +
+        '</div>';
+    if (window.screen.width <= '1275'){
+        return false
+    }else{
+        $("body").append(css);
+        $("body").append(_html);
+        try{
+        	$('#rightSideBar .rightbtn').on('mouseover', function () {
+	            $(this).children('.rightHov').show();
+	        }).on('mouseout', function () {
+	            $(this).children('.rightHov').hide();
+	        });
+        }catch(err){
+			$('#rightSideBar .rightbtn').live('mouseover', function () {
+	            $(this).children('.rightHov').show();
+	        }).live('mouseout', function () {
+	            $(this).children('.rightHov').hide();
+	        });
+        }  
+        $('#rightSideBar .toTop').bind('click', function () {
+        	if($('body,html').scrollTop() == 0){
+        		$(window).scrollTop(0);
+        	}else{
+	        	$('body,html').animate({
+	                scrollTop: 0
+	            }, 500);
+        	}     
+            return false;
+        });
+    }
+})();

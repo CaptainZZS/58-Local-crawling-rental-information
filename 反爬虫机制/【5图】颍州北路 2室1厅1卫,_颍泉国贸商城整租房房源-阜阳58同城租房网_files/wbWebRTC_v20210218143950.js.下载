@@ -1,0 +1,508 @@
+(function (win) {
+    function RTCEventEmitter() {
+        this.events = {};
+    }
+
+    RTCEventEmitter.prototype.on = function (eventName, callback) {
+        this.events[eventName] = this.events[eventName] || [];
+        this.events[eventName].push(callback);
+    };
+    RTCEventEmitter.prototype.emit = function (eventName, _) {
+        var events = this.events[eventName],
+            args = Array.prototype.slice.call(arguments, 1),
+            i,
+            m;
+        if (!events) {
+            return;
+        }
+        for (i = 0, m = events.length; i < m; i++) {
+            events[i].apply(null, args);
+        }
+    };
+    win.RTCEmitter = new RTCEventEmitter();
+    RTCEmitter.on('loadWebRTC', function (e) {
+        loadWebRTC(e);
+    });
+    var ERRMSG = {
+        91: 'ICE连接失败',
+        92: '摄像头和麦克风授权失败',
+        93: '切换摄像头失败',
+        94: '创建offer失败',
+        95: '创建answer失败',
+        96: '网络通信异常',
+        97: '获取ICE server失败',
+        98: '当前网络异常',
+        99: '加入房间失败'
+    },
+        NOTICEMSG = {
+        SWITCH_AUDIO: "已切换至语音通话",
+        CANCLE: "通话已取消",
+        HANG_UP: "对方已挂断,通话结束",
+        REFUSE: "对方已拒绝,通话结束",
+        UNUSUAL_CANCEL: "对方通话异常,通话取消",
+        NO_ANSWER: "无人接听,通话结束",
+        CANCEL_END: "已取消,通话结束",
+        BUSY: "对方忙线中",
+        WAP_WIFI: "在移动网络情况下会影响视频聊天质量，并产生手机流量，确定继续？"
+        //处理微聊contact
+    };function updateContact(contact) {
+        var default_avatar = 'https://pic1.58cdn.com.cn/p1/n_v1bkuymc2tsxlfo5wrgb7a.png';
+        var name = contact.user_name || contact.name || '未知';
+        if (contact.remark) {
+            contact.name = contact.remark.remark_name || name;
+        } else {
+            contact.name = name;
+        }
+        contact.avatar = contact && contact.avatar ? contact.avatar : default_avatar;
+        contact.avatar = contact.avatar.replace(/j1.58cdn/g, 'img.58cdn');
+        return contact;
+    }
+
+    function loadWebRTC(data) {
+        if (!win.wbWebRTCSDK || !win.wbWebRTCUI || win.wbWebRTCSDK && !win.wbWebRTCSDK.isSupport) {
+            return;
+        }
+        var clientType = data.clientType,
+            commonParams = data.cometCommonParams,
+            isWebimoutside = data.isWebimoutside,
+            rtcAppID = data.rtcAppID || '1'; //默认微聊
+        win.wbWebRTCSDK.setEnv(data.env);
+        var pageUI = win.wbWebRTCUI.getInstance({ allowRing: data.allowRing });
+        win.pageUI = pageUI;
+        var clientWidth = 640,
+            clientHeight = 480;
+        var caller,
+            callee,
+            caller_callType,
+            callType,
+            popConfirm,
+            callStack = [];
+        if (clientType == 'wap') {
+            clientWidth = 480;
+            clientHeight = 640;
+        }
+        function callerLoadWebRTC(options) {
+            if (callStack.length) {
+                win.wbWebRTCUI.utils.toast({
+                    message: '您正在进行音视频通话，无法同时发起',
+                    time: 1500
+                });
+                return;
+            }
+            isWebimoutside ? RTCEmitter.emit('getWebRTCIMToken', { callback: loadCaller }) : loadCaller(commonParams.im_token);
+            function loadCaller(imToken) {
+                callType = options.callType == 1 ? "audio" : "video";
+                var contact = updateContact(options.contact);
+                callStack.length == 0 && pageUI.emit('user_info', {
+                    headimgurl: contact.avatar,
+                    nickname: contact.name
+                });
+                caller_callType = options.callType;
+                caller = new win.wbWebRTCSDK.Caller();
+                caller.call_type = callType;
+                caller.to_id = contact.user_id;
+                caller.to_source = contact.user_source;
+                callStack.push(caller);
+                caller.setVideoSize({ width: clientWidth, height: clientHeight });
+                caller.init({
+                    rtcAppID: rtcAppID,
+                    appID: commonParams.appid,
+                    userID: commonParams.user_id,
+                    userSource: commonParams.source,
+                    deviceID: commonParams.deviceID,
+                    clientType: clientType,
+                    imToken: imToken,
+                    opType: callType,
+                    isMixCall: 'true',
+                    bsPara: '',
+                    endUserID: '',
+                    endUserSource: ''
+                });
+                caller.addEventListener(function (e) {
+                    changePage(caller, e, contact);
+                });
+                caller.onMessage(function (e) {
+                    if (e.type == 'roomId') {
+                        //主叫方获取房间号,通知被叫方加入房间
+                        RTCEmitter.emit('callToCallee', {
+                            data: {
+                                user_id: contact.user_id,
+                                user_source: contact.user_source,
+                                room_id: e.roomId,
+                                call_type: callType,
+                                shop_id: contact.shop_id || '',
+                                shop_source: contact.shop_source || ''
+                            },
+                            callback: function callback() {
+                                //主叫开始唤起音视频
+                                caller.setVideoSize({ width: clientWidth, height: clientHeight });
+                                if (clientType == 'wap') {
+                                    if (options.callType === 1) {
+                                        caller.call(options);
+                                    } else {
+                                        pageUI.emit('video_page', { type: 'launch' });
+                                        if (!window.wbWebRTCUI.utils.isWifi()) {
+                                            popConfirm = wbWebRTCUI.utils.confirm({
+                                                title: '提示',
+                                                message: NOTICEMSG.WAP_WIFI,
+                                                btnText: ['取消', '继续'],
+                                                cancel: function cancel() {
+                                                    pageUI.emit('close_page', {});
+                                                    window.wbWebRTCUI.utils.toast({
+                                                        message: '通话取消',
+                                                        time: 1500
+                                                    });
+                                                },
+                                                confirm: function confirm() {
+                                                    caller.call(options);
+                                                }
+                                            });
+                                        } else {
+                                            caller.call(options);
+                                        }
+                                    }
+                                } else {
+                                    caller.call(options);
+                                }
+                            }
+                        });
+                    } else {
+                        pageUI.emit('output_msg', e);
+                    }
+                });
+            }
+        }
+
+        function calleeLoadWebRTC(data, contact) {
+            isWebimoutside ? RTCEmitter.emit('getWebRTCIMToken', { callback: loadCallee }) : loadCallee(commonParams.im_token);
+            function loadCallee(imToken) {
+                callType = data.content.type == "call_audio" ? "audio" : "video";
+                contact.avatar = contact.avatar.replace(/j1.58cdn/g, 'img.58cdn');
+                callStack.length == 0 && pageUI.emit('user_info', {
+                    headimgurl: contact.avatar,
+                    nickname: contact.name
+                });
+                callee = new win.wbWebRTCSDK.Callee();
+                callee.call_type = callType;
+                callee.to_id = data.sender_id;
+                callee.to_source = data.sender_source;
+                callee.setVideoSize({ width: clientWidth, height: clientHeight });
+                //被叫收到房间号码加入房间建立长连接
+                callee.init({
+                    rtcAppID: rtcAppID,
+                    appID: commonParams.appid,
+                    userID: commonParams.user_id,
+                    userSource: commonParams.source,
+                    deviceID: commonParams.deviceID,
+                    clientType: clientType,
+                    imToken: imToken,
+                    roomID: data.content.room_id,
+                    opType: callType,
+                    isMixCall: 'true',
+                    bsPara: '',
+                    endUserID: '',
+                    endUserSource: ''
+                });
+                callee.addEventListener(function (e) {
+                    changePage(callee, e, contact);
+                });
+                callee.onMessage(function (e) {
+                    pageUI.emit('output_msg', e);
+                });
+            }
+        }
+
+        //已切换至语音通话,请使用听筒接听
+        function changePage(callObject, e, contact) {
+            if (e.code >= 201 && e.code <= 209 && callObject && callObject.to_id) {
+                RTCEmitter.emit('update_call', {
+                    data: {
+                        sender_id: commonParams.user_id || "",
+                        sender_source: commonParams.source || "",
+                        to_id: callObject.to_id || "",
+                        to_source: callObject.to_source || "",
+                        room_id: callObject.config.roomid || "",
+                        duration: 0,
+                        end_desc: '',
+                        status: e.code,
+                        call_type: callObject.call_type,
+                        shop_id: contact.shop_id || '',
+                        shop_source: contact.shop_source || ''
+                    },
+                    callback: function callback() {}
+                });
+            }
+
+            //第三者呼入邀请处理
+            if (callObject instanceof win.wbWebRTCSDK.Callee) {
+                callee = callObject;
+                var index = callStack.indexOf(callee);
+                if (e.code == 208 && index > 0) {
+                    callStack.splice(index, 1);
+                    callObject = null;
+                    return;
+                }
+                if (callStack.length && callStack[0] != callee) {
+                    callee.responseBusy();
+                    win.wbWebRTCUI.utils.toast({
+                        message: '您有一条音视频请求',
+                        time: 1500
+                    });
+                    return;
+                }
+            } else {
+                caller = callObject;
+            }
+            var message = "";
+            switch (e.code) {
+                case 91:
+                case 92:
+                case 93:
+                case 94:
+                case 95:
+                case 96:
+                case 97:
+                case 98:
+                case 99:
+                    message = ERRMSG[e.code];
+                    callStack = [];
+                    if (e.code == 92 && RTCEmitter.events.error) {
+                        message = '';
+                    }
+                    RTCEmitter.emit('error', { code: e.code });
+                    break;
+                case 101:
+                    if (callee) {
+                        RTCEmitter.emit('titleNotify', {});
+                        pageUI.emit('close_page', {});
+                        if (callee.call_type == "audio") {
+                            pageUI.emit('audio_page', { type: "connect" });
+                        } else {
+                            pageUI.emit('video_page', { type: "connect" });
+                        }
+                    }
+                    break;
+                case 102:
+                    pageUI.emit('close_page', {});
+                    pageUI.emit('video_page', { type: "connect" });
+                    break;
+                case 103:
+                    message = NOTICEMSG.CANCLE;
+                    break;
+                case 104:
+                    pageUI.emit('close_page', {});
+                    if (caller.call_Type == "video") {
+                        message = NOTICEMSG.SWITCH_AUDIO;
+                    }
+                    pageUI.emit('audio_page', { type: "connect" });
+                    break;
+                case 111:
+                    pageUI.emit('audio_page', { type: "launch" });
+                    break;
+                case 112:
+                    pageUI.emit('video_page', { type: "launch" });
+                    break;
+                case 120:
+                    //未连通
+                    if (clientType == 'wap') {
+                        popConfirm && popConfirm.close();
+                        popConfirm = null;
+                    }
+                    pageUI.emit('close_page', {});
+                    message = NOTICEMSG.SWITCH_AUDIO;
+                    callee.call_type = "audio";
+                    pageUI.emit('audio_page', { type: "receive" });
+                    break;
+                case 121:
+                    //已连通
+                    pageUI.emit('close_page', {});
+                    message = NOTICEMSG.SWITCH_AUDIO;
+                    pageUI.emit('audio_page', { type: "connect" });
+                    break;
+                case 122:
+                    //被叫收到主叫通话邀请
+                    callStack.push(callee);
+                    if (callee.call_type == "audio") {
+                        pageUI.emit('audio_page', { type: "receive" });
+                    } else {
+                        pageUI.emit('video_page', { type: "receive" });
+                    }
+                    if (clientType == 'wap' && !window.wbWebRTCUI.utils.isWifi) {
+                        popConfirm = window.wbWebRTCUI.utils.confirm({
+                            title: '提示',
+                            message: NOTICEMSG.WAP_WIFI,
+                            btnText: ['取消', '继续'],
+                            cancel: function cancel() {
+                                callee.reject();
+                            },
+                            confirm: function confirm() {}
+                        });
+                    }
+                    break;
+                case 201:
+                    message = caller ? NOTICEMSG.CANCLE : NOTICEMSG.HANG_UP;
+                    break;
+                case 202:
+                    message = caller ? NOTICEMSG.REFUSE : NOTICEMSG.CANCLE;
+                    break;
+                case 203:
+                    message = caller ? NOTICEMSG.CANCLE : NOTICEMSG.HANG_UP;
+                    break;
+                case 204:
+                    message = caller ? NOTICEMSG.HANG_UP : NOTICEMSG.CANCLE;
+                    break;
+                case 205:
+                    //主叫异常断开
+                    message = NOTICEMSG.UNUSUAL_CANCEL;
+                    break;
+                case 206:
+                    //被叫异常断开
+                    message = NOTICEMSG.UNUSUAL_CANCEL;
+                    break;
+                case 207:
+                    message = caller ? NOTICEMSG.NO_ANSWER : NOTICEMSG.CANCEL_END;
+                    break;
+                case 208:
+                    message = NOTICEMSG.BUSY;
+                    break;
+                case 209:
+                    message = caller ? NOTICEMSG.CANCLE : NOTICEMSG.HANG_UP;
+                    break;
+            }
+            //通话取消、拒绝、关闭、结束
+            var hasCallTime = false; //是否有通话时长
+            if (e.code === 103 || e.code > 200 && e.code < 300) {
+                if (callee) {
+                    RTCEmitter.emit('titleNotify', {});
+                }
+                callObject = null;
+                callStack = [];
+                caller = null;
+                callee = null;
+                pageUI.emit('clear_stream', {
+                    callTime: function callTime(e) {
+                        hasCallTime = true;
+                        RTCEmitter.emit('call_msg', { callTime: e.time });
+                    }
+                });
+                pageUI.emit('close_page', {});
+                if (clientType == 'wap') {
+                    popConfirm && popConfirm.close();
+                    popConfirm = null;
+                }
+            } else if (e.code === 300) {
+                pageUI.emit('close_page', {});
+            }
+
+            if (!hasCallTime) {
+                RTCEmitter.emit('call_msg', { code: e.code });
+            }
+            message && win.wbWebRTCUI.utils.toast({
+                message: message,
+                time: 1500
+            });
+        }
+
+        //页面点击事件
+        pageUI.on('page_event_code', function (e) {
+            RTCEmitter.emit('call_msg', { pageCode: e.code });
+            // console.log('被叫页面事件状态码: ', e.code)
+            var callObject = callStack[0];
+            if (callObject instanceof win.wbWebRTCSDK.Callee) {
+                callee = callObject;
+            } else {
+                caller = callObject;
+            }
+            switch (e.code) {
+                case 100:
+                    //主叫取消
+                    caller && caller.cancel();
+                    callStack = [];
+                    break;
+                case 101:
+                    //主叫由发起视频切到语音通话
+                    caller && caller.switchToAudio();
+                    break;
+                case 102:
+                    //被叫拒绝视频
+                    callee && callee.reject();
+                    callStack = [];
+                    break;
+                case 103:
+                    //被叫接听视频
+                    callee && callee.accept({ callType: 2 });
+                    break;
+                case 104:
+                    //被叫视频切语音接听
+                    callee && callee.accept({ callType: 1 });
+                    callee.call_type = "audio";
+                    break;
+                case 105:
+                    //通话中视频切到聊天界面,显示小窗口(m端)
+                    break;
+                case 106:
+                    //通话中聊天界面切到视频聊天,显示大窗口(m端)
+                    break;
+                case 107:
+                    //通话中视频切语音
+                    caller && caller.switchToAudio();
+                    callee && callee.switchToAudio();
+                    break;
+                case 108:
+                    //通话中视频挂断
+                    caller && caller.close();
+                    callee && callee.close();
+                    callStack = [];
+                    break;
+                case 109:
+                    //通话中视频切换摄像头 (m端)
+                    break;
+                case 110:
+                    //主叫发起语音通话后取消通话
+                    caller && caller.cancel();
+                    callStack = [];
+                    break;
+                case 111:
+                    //被叫拒绝语音通话
+                    callee && callee.reject();
+                    callStack = [];
+                    break;
+                case 112:
+                    //被叫收到语音邀请接听
+                    callee && callee.accept({ callType: 1 });
+                    break;
+                case 113:
+                    //语音聊天切到聊天界面(m端)
+                    break;
+                case 114:
+                    //聊天界面切到语音聊天(m端)
+                    break;
+                case 115:
+                    //语音聊天挂断
+                    caller && caller.close();
+                    callee && callee.close();
+                    callStack = [];
+                    break;
+                case 116:
+                    //静音
+                    caller && caller.switchAudioMute();
+                    callee && callee.switchAudioMute();
+                    break;
+            }
+        });
+        RTCEmitter.on('calleeLoadWebRTC', function (e) {
+            if (win.wbWebRTCSDK && win.wbWebRTCSDK.isSupport) {
+                win.wbWebRTCSDK.isSupportVideo(function (res) {
+                    if (!(!res && callType == 'video')) {
+                        RTCEmitter.emit('titleNotify', { msg: '【您有一条音视频请求】' });
+                        win.WebRTC.calleeLoadWebRTC(e.msgItem, e.contact);
+                    }
+                }, function (e) {});
+            }
+        });
+        win.WebRTC = {
+            callerLoadWebRTC: callerLoadWebRTC,
+            calleeLoadWebRTC: calleeLoadWebRTC
+        };
+    }
+})(window);

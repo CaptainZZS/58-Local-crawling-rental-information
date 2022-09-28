@@ -1,0 +1,9 @@
+appendContentById('brand_detial_top_banner',"<div id=\"ssppre_8\" name=\"品牌详情页顶通广告位\"> <script type=\"text/javascript\"> var hasContent = false; if(hasContent){ $(\"#brand_detial_top_banner\").css(\"display\",\"block\"); } </script> </div>");
+appendContentById('brand_md',"<div id=\"ssppre_16\" name=\"品牌名店广告\"> <script type=\"text/javascript\"> var hasContent = false; if(hasContent){ $(\"#brand_md\").trigger(\"bindBrandEvent\"); } </script> </div>");
+appendContentById('direct_ad_bottom',"<div id=\"1000014\" name=\"direct_ad_bottom\"></div>");
+appendContentById('googlead_list',"<div id=\"1000015\" name=\"googlead_list\"></div>");
+appendContentById('sideAD',"<div id=\"1000016\" name=\"sideAD1\"></div>");
+appendContentById('sideAD',"<div id=\"1000017\" name=\"sideAD2\"></div>");
+appendContentById('bottom_zhaoshangjiameng_ad',"<div id=\"1000018\" name=\"bottom_zhaoshangjiameng_ad\"></div>");
+
+window['optzjs'].zhineng_request_done("{\"1000014\":{\"capacity\":1},\"1000015\":{\"capacity\":1},\"1000016\":{\"capacity\":1},\"1000017\":{\"capacity\":1},\"1000018\":{\"capacity\":1}}");

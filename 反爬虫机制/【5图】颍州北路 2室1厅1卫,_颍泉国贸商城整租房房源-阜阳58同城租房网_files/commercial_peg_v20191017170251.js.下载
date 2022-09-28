@@ -1,0 +1,1726 @@
+(function () {
+	'use strict';
+
+	var addJquery = function () {
+		var i = 0;
+		return function (callBack, type) {
+			if (i > 1) {
+				return;
+			}
+			var script = document.createElement("script");
+			script.type = "text/javascript";
+			script.src = "../../static/jquery/jquery-1.11.2.min.js";
+			// 判断是PC还是M，加载不同路径下的jquery，规定PC-->1;M-->0
+			// if(type == 1) {
+			// 	script.src = '//j1.58cdn.com.cn/crop/biz/pc/entrance/jquery-1.11.2.min.js';
+			// } else {
+			// 	script.src = '//j1.58cdn.com.cn/crop/biz/m/entrance/jquery-1.11.2.min.js';
+			// }
+			document.getElementsByTagName("head")[0].appendChild(script);
+			//Firefox, Opera, Chrome, Safari 3+
+			//script.onreadystatechange 兼容IE8
+			script.onload = script.onreadystatechange = function () {
+
+				if (!this.readyState || this.readyState == "loaded" || this.readyState == "complete") {
+					// 初始化发布页、详情页、发布成功页/初始化布点
+					$(function () {
+						callBack.init();
+					});
+				}
+			};
+			script.onerror = function () {
+				i++;
+				addJquery(callBack);
+			};
+		};
+	}();
+
+	var decimal = function () {
+		var DECIMAL_SEPARATOR = '.';
+
+		// Decimal
+		var Decimal = function Decimal(num) {
+			if (!this || this.constructor != Decimal) {
+				return new Decimal(num);
+			}
+
+			if (num instanceof Decimal) {
+				return num;
+			}
+
+			this.internal = String(num);
+			this.as_int = as_integer(this.internal);
+
+			this.add = function (target) {
+				var operands = [this, new Decimal(target)];
+				operands.sort(function (x, y) {
+					return x.as_int.exp - y.as_int.exp;
+				});
+
+				var smallest = operands[0].as_int.exp;
+				var biggest = operands[1].as_int.exp;
+
+				var x = Number(format(operands[1].as_int.value, biggest - smallest));
+				var y = Number(operands[0].as_int.value);
+
+				var result = String(x + y);
+
+				return Decimal(format(result, smallest));
+			};
+
+			this.sub = function (target) {
+				return Decimal(this.add(target * -1));
+			};
+
+			this.mul = function (target) {
+				target = new Decimal(target);
+				var result = String(this.as_int.value * target.as_int.value);
+				var exp = this.as_int.exp + target.as_int.exp;
+
+				return Decimal(format(result, exp));
+			};
+
+			this.div = function (target) {
+				target = new Decimal(target);
+
+				var smallest = Math.min(this.as_int.exp, target.as_int.exp);
+
+				var x = Decimal.mul(Math.pow(10, Math.abs(smallest)), this);
+				var y = Decimal.mul(Math.pow(10, Math.abs(smallest)), target);
+
+				return Decimal(x / y);
+			};
+
+			this.toString = function () {
+				return this.internal;
+			};
+
+			this.toNumber = function () {
+				return Number(this.internal);
+			};
+		};
+
+		var as_integer = function as_integer(number) {
+			number = String(number);
+
+			var value,
+			    exp,
+			    tokens = number.split(DECIMAL_SEPARATOR),
+			    integer = tokens[0],
+			    fractional = tokens[1];
+
+			if (!fractional) {
+				var trailing_zeros = integer.match(/0+$/);
+
+				if (trailing_zeros) {
+					var length = trailing_zeros[0].length;
+					value = integer.substr(0, integer.length - length);
+					exp = length;
+				} else {
+					value = integer;
+					exp = 0;
+				}
+			} else {
+				value = parseInt(number.split(DECIMAL_SEPARATOR).join(''), 10);
+				exp = fractional.length * -1;
+			}
+
+			return {
+				'value': value,
+				'exp': exp
+			};
+		};
+
+		// Helpers
+		var neg_exp = function neg_exp(str, position) {
+			position = Math.abs(position);
+
+			var offset = position - str.length;
+			var sep = DECIMAL_SEPARATOR;
+
+			if (offset >= 0) {
+				str = zero(offset) + str;
+				sep = '0.';
+			}
+
+			var length = str.length;
+			var head = str.substr(0, length - position);
+			var tail = str.substring(length - position, length);
+			return head + sep + tail;
+		};
+
+		var pos_exp = function pos_exp(str, exp) {
+			var zeros = zero(exp);
+			return String(str + zeros);
+		};
+
+		var format = function format(num, exp) {
+			num = String(num);
+			var func = exp >= 0 ? pos_exp : neg_exp;
+			return func(num, exp);
+		};
+
+		var zero = function zero(exp) {
+			return new Array(exp + 1).join('0');
+		};
+
+		// Generics
+		var methods = ['add', 'mul', 'sub', 'div'];
+		for (var i = 0; i < methods.length; i++) {
+			(function (method) {
+				Decimal[method] = function (a, b) {
+					return new Decimal(a)[method](b);
+				};
+			})(methods[i]);
+		}
+
+		// Module
+		return Decimal;
+	}();
+
+	var urlParam = function () {
+	    var getobj = {};
+	    var regExpobj = new RegExp(/&([^=|.])*=/g);
+	    var searchUrl = "&" + location.search.substring("1");
+	    var keyArr = searchUrl.match(regExpobj) || [];
+	    var valueArr = searchUrl.replace(regExpobj, '&&&').split('&&&');
+	    valueArr.shift();
+	    // keyArr.forEach(function(item,index){
+	    //     getobj[item.substring(1,item.length-1)] = decodeURIComponent(valueArr[index]);
+	    // })
+	    // ie8不支持forEach，改成for循环
+	    for (var i = 0; i < keyArr.length; i++) {
+	        var item = keyArr[i];
+	        getobj[item.substring(1, item.length - 1)] = decodeURIComponent(valueArr[i]);
+	    }
+	    return getobj;
+	}();
+
+	var event = {
+		type: '', // 支持on还是degelete
+		ele: null, // 根元素
+		on: function on(event, selector, fn) {
+			this.ele.off(event, selector, fn).on(event, selector, fn);
+		},
+
+		delegate: function delegate(event, selector, fn) {
+			this.ele.undelegate(selector, event, fn).delegate(selector, event, fn);
+		},
+
+		click: function click(event, selector, fn) {
+			var _this = this;
+			this.ele[0].onclick = function (e) {
+				var evt = window.event || e;
+				var evtTarget = evt.target || evt.srcElement;
+				_this.searchTarget(evtTarget, this, selector, fn);
+			};
+		},
+
+		searchTarget: function searchTarget(elem, that, selector, fn) {
+			var elem = elem,
+			    i = 0;
+			if ($(elem).find(selector).length > 0) {
+				return false;
+			}
+			while (i < 20) {
+				if (that == elem) {
+					if (selector == '') {
+						fn.call(elem);
+					}
+					break;
+				}
+
+				// console.log(this.booDom(elem,selector))
+
+				if (this.booDom(elem, selector)) {
+					fn.call(elem);
+					break;
+				}
+
+				elem = elem.parentElement;
+				i++;
+			}
+		},
+
+		booDom: function booDom(elem, selector) {
+
+			var selector = selector.replace(/(^\s*)|(\s*$)/g, "");
+			switch (selector[0]) {
+				case ".":
+					return elem.className.indexOf(selector.substr(1)) > -1;
+					break;
+				case "#":
+					return elem.id.indexOf(selector.substr(1)) > -1;
+					break;
+				default:
+					return elem.tagName == selector.substr(1).toUpperCase();
+			}
+		},
+
+		event: function event() {
+			var _this = this;
+			return function (ele) {
+				_this.ele = ele;
+				_this.type || _this.selected(ele); //判断只支持一次调用
+				return _this;
+			};
+		},
+
+		$on: function $on(event, selector, fn) {
+			this[this.type](event, selector, fn);
+			return this;
+		},
+		// 判断是否支持on
+		selected: function selected(ele) {
+			if (ele.on) {
+				this.type = 'on';
+			} else if (ele.delegate) {
+				this.type = 'delegate';
+			} else {
+				this.type = 'click';
+			}
+		}
+	};
+
+	var $event = event.event();
+
+	/*
+	* @date 2018-04-13
+	* @author hyt
+	*/
+	var payMode = {
+		init: function init() {
+			this.initDomEvent();
+		},
+
+		// 支付部分dom
+		payModeDom: function payModeDom() {
+			return '\n\t\t\t<div class="zl_pay_mode">\n\t            <div class="zl_common_list">\n\t                <p class="zl_common_title">\u652F\u4ED8\u65B9\u5F0F</p>\n\t                <ul class="zl_common_text clearfix">\n\t                    <li class="zl_pay icon-sanjiaoxuanzhong iconfont fl" data-check="wx">\n\t                        <span class="iconfont weixin"></span>\u5FAE\u4FE1\u652F\u4ED8\n\t                    </li>\n\t                    <li class="zl_pay iconfont fl" data-check="ali">\n\t                        <span class="iconfont zhifubao"></span>\u652F\u4ED8\u5B9D\u652F\u4ED8\n\t                    </li>\n\t                    <li class="zl_pay iconfont fl" data-check="pmc">\n\t                        \u5176\u4ED6\u652F\u4ED8\u65B9\u5F0F\n\t                    </li>\n\t                </ul>\n\t            </div>\n\t    \t</div>';
+		},
+
+		// 提交部分dom
+		submitDom: function submitDom() {
+			return '\n\t\t\t<div class="zl_submit">\n\t            <div class="zl_submit_sure">\u786E\u5B9A</div>\n\t            <p class="zl_submit_relu">\n\t                <span class="zl_submit_item">\n\t                <i class="icon-duoxuanxuanzhong iconfont"></i>\n\t                \u6211\u5DF2\u9605\u8BFB\u5E76\u540C\u610F\n\t                </span>\n\t                <a href="http://about.58.com/337.html#h" target="_blank">\u63A8\u5E7F\u89C4\u5219</a>\n\t            </p>\n\t    \t</div>';
+		},
+
+		// 事件绑定
+		initDomEvent: function initDomEvent() {
+			$event($('body')).$on('click', '.zl_submit_item', function () {
+				var $this = $(this);
+				var $dom = $this.find('.iconfont');
+				if ($dom.hasClass("icon-duoxuanxuanzhong")) {
+					$dom.removeClass("icon-duoxuanxuanzhong").addClass("icon-duoxuankuang");
+				} else {
+					$dom.addClass("icon-duoxuanxuanzhong").removeClass("icon-duoxuankuang");
+				}
+				if ($this.parent().parent().parent().find(".zl_newYe_list").length > 0) {
+					$(".zl_submit_sure").toggleClass("zl_submit_quit");
+				}
+			});
+		}
+	};
+
+	/*
+	* @date 2018-04-16
+	* @author hyt
+	*/
+
+	var newYue = {
+		init: function init(showPrices) {
+			var html = this.domStr(showPrices);
+			html += payMode.payModeDom();
+			html += payMode.submitDom();
+			$("#prompty_price").html(html);
+			// 调用payMode初始化dom事件
+			payMode.init();
+		},
+
+		// 循环构建业务线推广币dom结构
+		// loopWorklineDom: function(list, payLay) {
+		// 	var _this = this;
+		// 	var arr = [];
+		// 	$.each(list, function(index,item) {
+		// 		arr.push('\
+		// 			<li class="zl_newYe_jimi">\
+		// 				<span class="zl_newYe_name">',item.workLine,'：</span>\
+		// 				<span class="zl_newYe_price">￥',item.price,'</span>\
+		// 				<span class="zl_newYe_total">(共',new Decimal(payLay[index].price).div(10000).toString().match(/\d*\.?\d{0,2}/g)[0],'元可用)</span>');
+		// 		if(item.workLine.search("58现金") != -1) {
+		// 			arr.push('\
+		// 				<span class="zl_newYue_tip"><i>您的推广币不足，我们将自动为您抵扣58现金</i></span>');
+		// 		}
+		// 		arr.push('\
+		// 			</li>');
+		//        })
+		//        return arr.join('');
+		// },
+
+		// 循环各种折扣
+		loopDiscounts: function loopDiscounts(data) {
+			// console.log(data);
+			var arr = [];
+			$.each(data, function (index, item) {
+				if (item.price > 0 && index > 0) {
+					arr.push('\
+					<li class="zl_newYe_jimi">\
+						<span class="zl_newYe_name">', item.name, '：</span>\
+						<span class="zl_newYe_price">￥', item.price, '</span>\
+					</li>');
+				}
+			});
+
+			return arr.join('');
+		},
+
+		// 构建各种折扣部分的dom结构
+		domStr: function domStr(data) {
+			// console.log(data)
+			// var str = this.loopWorklineDom(data.list, data.payLay);
+			// var payLay = data.payLay;
+			// var balanceStr;
+			// for(var i = 0; i < payLay.length; i++) {
+			// 	if((payLay[i].workLine.search("58现金") == -1) && (payLay[i].workLine.search("通用推广币") == -1)) {
+			// 		balanceStr = payLay[i].workLine
+			// 	}
+			// }
+
+			// 循环一遍折扣
+			var discountList = this.loopDiscounts(data.discountPrice);
+			var dom = '\n\t\t\t<div class="zl_newYe">\n\t\t\t\t<ul class="zl_newYe_list">\n\t\t\t\t\t<li>\n\t\t\t\t\t\t<span class="zl_newYe_name">\u8D39\u7528\u603B\u8BA1\uFF1A</span>\n\t\t\t\t\t\t<span class="zl_newYe_price">\uFFE5' + data.hidden_totalPrice + '</span>\n\t\t\t\t\t</li>\n\t\t\t\t\t' + discountList + '\n\t\t\t\t</ul>\n\t            <div class="zl_newYe_payPrice">\n                    <span class="zl_newYe_name">\u5B9E\u4ED8\u91D1\u989D\uFF1A</span>\uFFE5<em>' + data.realPrice + '</em>\n                    <span class="hyt_account_balance">\uFF08\u8D26\u6237\u8D44\u91D1' + data.accountBalance + '\u5143' + (data.payPrice > 0 ? '\uFF0C\u8FD8\u9700\u5145\u503C' + data.payPrice + '\u5143' : '') + '\uFF09</span>\n                    <div class="zl_autopay_tip">\n                        <i class=""></i>\n                        <span>\u8D26\u6237\u8D44\u91D1=58\u73B0\u91D1+\u901A\u7528\u63A8\u5E7F\u5E01+' + data.businessDescStr + '</span>\n                    </div>\n        \t\t</div>\n\t\t\t</div>';
+			return dom;
+		}
+	};
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+	  return typeof obj;
+	} : function (obj) {
+	  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+	};
+
+	var JSONP = {
+	    // 获取当前时间戳
+	    now: function now() {
+	        return new Date().getTime();
+	    },
+	    // 获取随机数
+	    rand: function rand() {
+	        return Math.random().toString().substr(2);
+	    },
+	    // 移除script标签
+	    removeElem: function removeElem(elem) {
+	        var parent = elem.parentNode;
+	        if (parent && parent.nodeType !== 11) {
+	            parent.removeChild(elem);
+	        }
+	    },
+	    // url组装，对于data对象的元素
+	    parseData: function parseData(data) {
+	        var ret = "";
+	        if (typeof data === "string") {
+	            ret = data.indexOf("?") === -1 ? "?" + data : data;
+	        } else if ((typeof data === "undefined" ? "undefined" : _typeof(data)) === "object") {
+	            for (var key in data) {
+	                ret += "&" + key + "=" + encodeURIComponent(data[key]);
+	            }
+	        }
+	        // 加个时间戳，防止缓存
+	        ret += "&_time=" + JSONP.now();
+	        ret = ret.substr(1);
+	        return ret;
+	    },
+	    getJSON: function getJSON(url, data, succ, error) {
+	        // 函数名称
+
+	        // if(isProduction){
+	        //     url = config.dev.proxy[url][1];
+	        // }else{
+	        //     url = config.dev.proxy[url][0];
+	        // }
+
+	        var name,
+	            succ = succ || function () {
+	            console.log("no succ callback!");
+	        },
+	            error = error || function () {
+	            alert("网络异常，请重试!");
+	        };
+
+	        // 拼装url
+
+	        url = url + (url.indexOf("?") === -1 ? "?" : "&") + JSONP.parseData(data);
+
+	        // 检测callback的函数名是否已经定义
+
+	        var match = /callback=(\w+)/.exec(url);
+
+	        if (match && match[1]) {
+	            name = match[1];
+	        } else {
+	            // 如果未定义函数名的话随机成一个函数名
+	            // 随机生成的函数名通过时间戳拼16位随机数的方式，重名的概率基本为0
+	            // 如:jsonp_1355750852040_8260732076596469
+	            name = "jsonp_" + JSONP.now() + '_' + JSONP.rand();
+
+	            // 把callback中的?替换成函数名
+	            // url = url.replace("callback=?", "callback="+name);
+	            // 处理?被encode的情况
+	            // url = url.replace("callback=%3F", "callback="+name);
+
+	            url += "&callback=" + name;
+	        }
+	        // 创建一个script元素
+	        var script = document.createElement("script");
+
+	        script.type = "text/javascript";
+	        // 设置要远程的url
+	        script.src = url;
+	        // 设置id，    `为了后面可以删除这个元素
+	        script.id = "id_" + name;
+
+	        // 加载错误回调
+
+	        script.onerror = function () {
+	            error();
+	        };
+
+	        // 把传进来的函数重新组装，并把它设置为全局函数，远程就是调用这个函数
+
+	        window[name] = function (json) {
+	            // 执行这个函数后，要销毁这个函数
+	            window[name] = undefined;
+	            // 获取这个script的元素
+	            var elem = document.getElementById("id_" + name);
+	            // 删除head里面插入的script，这三步都是为了不影响污染整个DOM啊
+	            JSONP.removeElem(elem);
+	            // 执行传入的的函数
+	            succ(json);
+	        };
+
+	        // 在head里面插入script元素
+	        var head = document.getElementsByTagName("head");
+
+	        if (head && head[0]) {
+	            head[0].appendChild(script);
+	        }
+	    }
+	};
+
+	var $jsonp = JSONP.getJSON;
+
+	function toFixed(num) {
+		return num.div(10000).toString().match(/\d*\.?\d{0,2}/g)[0];
+	}
+
+	// 请求价格
+
+	function getPriceRequest(data, callBack) {
+		// 拼接传给接口的参数
+		var paramTemp = window.commercial;
+		// console.log('paramTemp', paramTemp)
+		var param = {
+			productId: 100,
+			entityId: paramTemp.entityidlist,
+			entityType: paramTemp.entitytype,
+			source: paramTemp.common.source,
+			media: 0
+		};
+
+		param.hours = data.hours;
+		param.pageList = data.pageList;
+		// 优惠券码，不传默认为空
+		param.couponCode = data.couponCode || '';
+		// 账户资金
+		var accountBalance = data.accountBalance;
+		// 默认选中的天数对应的时长折扣
+		var defaultDiscount = data.defaultDiscount;
+		// 传给后端的时间戳id值，后端会在接口中返回，当传入值和返回值相同时进行后续操作
+		param.v = new Date().getTime();
+		$jsonp('//infotophttpapi.58.com/infoTop/calPrice', param, function (result) {
+			// console.log('result', result)
+
+			if (param.v != result.data.version) {
+				return;
+			}
+
+			// 单个的价格请求计算
+			// let price = {initial:[], discountPrice:[]};
+			var price = {};
+			if (result.data.price.length == 1 && result.data.price[0] != null) {
+				price = formatPrice(result.data.price[0], accountBalance);
+			}
+
+			// 当返回多组价格时（初始化请求）
+			if (result.data.price.length > 1) {
+				var priceTemp = {};
+				var initial = [];
+				for (var i = 0; i < result.data.price.length; i++) {
+					var priceItem = result.data.price[i];
+					if (priceItem != null) {
+						// 默认天数的价格计算
+						if (priceItem.timeDiscounts.discount == defaultDiscount) {
+							priceTemp = formatPrice(priceItem, accountBalance);
+						}
+
+						// 初始化每一组的价格和时长折扣价，用于详情页渲染每一天上面的价格
+						initial.push({
+							hidden_totalPrice: toFixed(new decimal(priceItem.initialPrice)),
+							discountPrice: toFixed(new decimal(priceItem.timeDiscounts.privilege))
+						});
+					}
+				}
+
+				priceTemp.initial = initial;
+				price = $.extend({}, priceTemp);
+			}
+
+			// console.log('price', price)
+
+			// 满足条件直接调用回调函数
+			callBack(price);
+		});
+	}
+
+	// 计算处理单个价格
+	function formatPrice(priceAlone, accountBalance) {
+		var result = { discountPrice: [] };
+		var discountTotal = 0;
+		for (var item in priceAlone) {
+			var priceItme = priceAlone[item];
+			if (typeof priceItme != "number" && typeof priceItme != "string" && priceItme.order) {
+				result.discountPrice[priceItme.order - 1] = {
+					name: priceItme.name,
+					price: toFixed(new decimal(priceItme.privilege)),
+					discount: priceItme.discount
+				};
+
+				discountTotal = new decimal(priceItme.privilege).add(discountTotal);
+			}
+		}
+
+		// 预计需要的价格
+		// hidden_totalPrice: 减去时长折扣，阶梯定价的价格，即费用总计
+		// reval_totalPrice: 减去时长折扣和阶梯折扣的价格和限时特惠的价格
+		// realPrice: 不减账户余额的价格，即实付金额
+		// payPrice: 需要充值的价格
+		// couponPrice: 需要传给优惠券接口的价格
+
+		// 费用总计
+		result.hidden_totalPrice = toFixed(new decimal(priceAlone.initialPrice));
+
+		// 减去限时特惠之后的费用总计（用于发布页的总计金额和应付金额）
+		// result.reval_totalPrice = toFixed(new Decimal(priceAlone.initialPrice).sub(priceAlone.priceDiscounts.privilege));
+
+		// 实付金额
+		result.realPrice = toFixed(new decimal(priceAlone.totalPrice));
+
+		// 需要充值的金额
+		result.payPrice = toFixed(new decimal(priceAlone.totalPrice).sub(accountBalance));
+
+		// 需要传给优惠券的金额
+		// initialPrice中已经减过时长折扣了，discountTotal中也包括时长折扣，所以这里时长折扣再加回来一个
+		result.couponPrice = new decimal(priceAlone.initialPrice).sub(discountTotal).add(priceAlone.timeDiscounts.privilege).div(100).toString().match(/\d*\.?\d{0,2}/g)[0];
+
+		// 用于展示的优惠券抵扣价格
+		result.couponDisPrice = toFixed(new decimal(priceAlone.couponDiscounts.privilege));
+
+		// 账户资金，详情页新余额需要展示
+		result.accountBalance = toFixed(accountBalance);
+
+		// 房产增加会员专享价显示
+		result.afterVipPrice = priceAlone.afterVipPrice ? toFixed(new decimal(priceAlone.afterVipPrice)) : false;
+
+		return result;
+	}
+
+	/*
+	* @date 2018-04-08
+	* @author hyt
+	*
+	* 初始化发布页和详情页的dom结构
+	*/
+
+	function IssueDetail() {
+	    this.couponPrice = 0;
+	    // 优惠券
+	    this.ticket = { price: 0, coupon: '', durationHour: '' };
+	    // 优惠券对象
+	    this.coupon = null;
+	    // 优惠券参数
+	    this.couponParam = {};
+	    // 自动续费
+	    // this.auto = 0;
+	    // 频道
+	    this.channels = {};
+
+	    // 请求价格接口时需要传的pageList
+	    this.pageList = '';
+	    // 时间
+	    // this.time = '';
+
+	    // 用于修改置顶后的异步回调
+	    // this.reviseTop = "";
+	    this.vipDiscount = false;
+
+	    this.isPackage = true;
+	    this.quit = true;
+	    // 埋点参数
+	    this.trackLogParam = '';
+	    // 引入计算模块对象
+	    this.calculateMode = null;
+
+	    // 账户余额总和
+	    this.accountBalance = 0;
+
+	    // 点击添加优惠券的参数
+	    this.promptyCitysed = [];
+	    this.promptyCateed = [];
+	    this.pricePerHour = [];
+	    this.pingdao = [];
+	    // 置顶页面数据
+	    this.pingdaoName = [];
+
+	    // 详情页余额足够的url
+	    this.enoughUrl = '';
+	}
+
+	IssueDetail.prototype = {
+
+	    // 初始化，主入口
+	    init: function init() {
+	        this.param = window.commercial;
+	        this.type = this.param.common.commonType;
+	        // 发布成功页
+	        if (this.type == 11) {
+	            $('#commercial').html('<div id="prompty_price"></div>');
+	            // 发布成功页直接调用置顶请求
+	            this.submit();
+	        } else {
+	            this.getInitPage();
+	        }
+
+	        if (this.type == 10) {
+	            window.commercial.selected = false; // 发布页默认不选中
+	        } else {
+	            window.commercial.selected = true; //
+	        }
+	    },
+
+	    // 处理发布页和详情页共同的“置顶页面将在【xx-xx】等Y个页面展示”的信息
+	    renderPageTip: function renderPageTip() {
+	        var page = '';
+	        if (this.pingdaoName.length > 3) {
+	            page = this.pingdaoName.slice(0, 3).join(',') + "等" + this.pingdaoName.length;
+	        } else {
+	            page = this.pingdaoName.join(',') + this.pingdaoName.length;
+	        }
+	        return page;
+	    },
+
+	    // 循环天数方法
+	    loopStocks: function loopStocks(data, type) {
+	        var _this = this;
+	        var arr = [];
+	        $.each(data.stocks, function (index, item) {
+	            if (!item.disabled) {
+	                _this.quit = false;
+	            }
+	            var tipSmSG = '';
+	            if (_this.isPackage) {
+	                tipSmSG = '置顶已售罄,无法购买';
+	            } else {
+	                tipSmSG = (item.msg.split(",").length > 3 ? item.msg.split(",").slice(0, 3).join(",") + "等" : item.msg) + "页面置顶已卖满,无法购买";
+	            }
+	            var showDay = new decimal(item.hours).div(24).toNumber() >= 1 ? new decimal(item.hours).div(24).toString() + '天' : item.hours + '时';
+	            // 详情页数字和天时字体大小不同，需要分开渲染
+	            var showDayNum = new decimal(item.hours).div(24).toNumber() >= 1 ? new decimal(item.hours).div(24).toString() : item.hours;
+	            var showDayType = new decimal(item.hours).div(24).toNumber() >= 1 ? '天' : '时';
+	            var showDiscount = item.discount >= 1 ? '' : new decimal(item.discount).mul(100).toString() + "折";
+	            if (type == 'detail') {
+	                // 如果是详情页，返回以下dom结构
+	                // var showPrice = _this.calculateMode.calculatePrices(item.hours, item.discount, _this.ticket);
+
+	                // TODO: 传进来的参数中有price，用来渲染价格相关
+	                // data.price
+	                arr.push('\
+					<li class="', item.defaultDays && !item.disabled ? 'commercial_item_selected' : '', item.disabled ? ' zl_time_quit' : '', '" data-hours="', item.hours, '" data-discount="', item.discount, '">\
+						<div class="commercial_detail_time_disprice">\
+							<div class=""><em>', showDayNum, '</em>', showDayType, '</div>\
+							<div class="cd_cur_disprice">￥', item.hidden_totalPrice, '</div>\
+						</div>\
+						<span class="commercial_detail_discount">', showDiscount, '</span>\
+						<p class="commercial_time_notice">', tipSmSG, '</p>\
+					</li>');
+	            } else {
+	                // 如果是发布页，返回以下dom结构
+	                arr.push('\
+					<li class="', item.defaultDays && !item.disabled ? 'commercial_item_selected' : '', item.disabled ? ' zl_time_quit' : '', '" data-hours="', item.hours, '" data-discount="', item.discount, '">', showDay, '\
+						<span class="commercial_issue_discount">', showDiscount, '</span>\
+						<p class="commercial_time_notice">', tipSmSG, '</p>\
+					</li>');
+	            }
+	        });
+	        return arr.join('');
+	    },
+
+	    // 构建发布页dom结构
+	    renderIssueDom: function renderIssueDom(data) {
+	        var _this = this;
+	        var page = _this.renderPageTip();
+	        var str = this.loopStocks(data, 'issue');
+	        var issue = "\n\t\t\t<div class=\"commercial_content commercial_issue\" id=\"prompty_time\">\n\t\t\t\t<div class=\"commercial_issue_profit\">\u9A6C\u4E0A\u4F7F\u7528<span>58\u7F6E\u9876\u63A8\u5E7F</span> \uFF0C\u5E16\u5B50\u6548\u679C\u53EF\u63D0\u5347\u7EA6<i> 3~5</i>\u500D\uFF01<span>\u6548\u679C\u9884\u89C8</span></div>\n\t\t\t\t<div class=\"commercial_issue_content\">\n\t\t\t\t\t<div class=\"commercial_issue_info\">\n\t\t\t\t\t\t<div class=\"commercial_issue_page clearfix\">\n\t\t\t\t\t\t    <div class=\"commercial_issue_button\" id=\"commercial_issue_select\" data-check=\"false\"></div>\n\t\t\t\t\t\t\t<h1>\u7F6E\u9876\u63A8\u5E7F</h1>\n\t\t\t\t\t\t\t" + (this.isPackage ? '' : "<p>\u7F6E\u9876\u9875\u9762<span>\u7F6E\u9876\u5C06\u5728" + page + "\u4E2A\u9875\u9762\u5C55\u793A</span></p>") + "\n\t\t\t\t\t\t</div>\n\t\t\t\t\t\t<div class=\"commercial_issue_price clearfix\">\n\t\t\t\t\t\t\t<p class=\"fl\">\u603B\u8BA1\u91D1\u989D\uFF1A<span id=\"commercial_issue_payPrice\">0.00</span>&nbsp;\u5143</p>\n\t\t\t\t\t\t\t" + (this.vipDiscount ? '<span class="commercial_issue_vip fl">会员专享折扣</span>' : '') + "\n\t\t\t\t\t\t</div>\n\t\t\t\t\t\t<ul class=\"commercial_issue_time commercial_top_time clearfix zl_common_allHour\" data-allHours=\"" + data.maxSaleHour + "\">" + str + "</ul>\n\t\t\t\t\t</div>\n\t\t\t\t\t<div class=\"commercial_issue_title\"></div>\n\t\t\t\t</div>\n\t\t\t\t<div class=\"commercial_issue_perfer clearfix\">\n\t\t\t\t\t<p class=\"commercial_issue_ticket fl\"><span>\u5238</span>\u6DFB\u52A0\u4F18\u60E0\u5238</p>\n\t\t\t\t\t<p class=\"commercial_issue_autopay fl\">\n\t\t\t\t\t\t<span class=\"commercial_auto\" data-check=\"false\">\n\t\t\t\t\t\t\t<i></i>\n\t\t\t\t\t\t\t<span class=\"commercial_issue_autotitle\">\u81EA\u52A8\u7EED\u8D39</span>\n\t\t\t\t\t\t\t<span class=\"commercial_issue_autodiscount\">9.8\u6298</span>\n\t\t\t\t\t\t</span>\n\t\t\t\t\t\t<span class=\"commercial_issue_autotip\">\uFF08\u52FE\u9009\u540E\u7CFB\u7EDF\u5C06\u5728\u7F6E\u9876\u5230\u671F\u65F6\u81EA\u52A8\u5E2E\u60A8\u7EED\u8D39\uFF0C\u4EAB<span>9.8\u6298</span>\u4F18\u60E0\uFF0C\u53EF\u5728\u7BA1\u7406\u7F6E\u9876\u968F\u65F6\u53D6\u6D88\u81EA\u52A8\u7EED\u8D39\uFF09</span>\n\t\t\t\t\t</p>\n\t\t\t\t\t<p class=\"commercial_issue_actualpay\">\n\t\t\t\t\t\u5E94\u4ED8<span class=\"commercial_payPrice\">0.00\u5143</span>\n\t\t\t\t\t<span class=\"hyt_fc_aftervip\">\u4F1A\u5458\u4E13\u4EAB\u4EF7\uFF1A<em><i  class=\"hyt_fc_afvprice\">129.00</i>\u5143</em>   \u4F1A\u5458\u54A8\u8BE2\uFF1A400-640-1189</span>\n\t\t\t\t\t</p>\n\t\t\t\t</div>\n\t\t\t</div>";
+
+	        return issue;
+	    },
+
+	    // 构建详情页dom结构
+	    renderDetailDom: function renderDetailDom(data) {
+	        var _this = this;
+	        // 价格之后操作
+	        var page = _this.renderPageTip();
+	        var str = this.loopStocks(data, 'detail');
+	        var detail = "\n\t\t\t<div id=\"commercial\">\n\t\t\t \t<div class=\"commercial_content\">\n\t\t\t\t \t<div class=\"commercial_transparent_bg\"></div>\n\t\t\t \t\t<div class=\"commercial_detail\" id=\"prompty_time\">\n\t\t\t \t\t\t<div class=\"commercial_min\"></div>\n\t\t\t \t\t\t<div class=\"commercial_detail_content\">\n\t\t\t\t\t\t\t<div class=\"commercial_detail_img\">\n\t\t\t\t\t\t\t\t<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIYAAABsCAYAAACvpsp1AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyFpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNS1jMDE0IDc5LjE1MTQ4MSwgMjAxMy8wMy8xMy0xMjowOToxNSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIChXaW5kb3dzKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpEQjVCNDAzNzYzMUIxMUU0OUU1NDlDREY4NUU5MzEzRCIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpEQjVCNDAzODYzMUIxMUU0OUU1NDlDREY4NUU5MzEzRCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkRCNUI0MDM1NjMxQjExRTQ5RTU0OUNERjg1RTkzMTNEIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkRCNUI0MDM2NjMxQjExRTQ5RTU0OUNERjg1RTkzMTNEIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+FECwAQAAKE5JREFUeNrsfQmUHNV5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\" alt=\"zhi\" />\n\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t<div class=\"commercial_detail_infer\">\n\t\t\t\t\t\t\t\t<p>\u9A6C\u4E0A\u4F7F\u752858\u7F6E\u9876\u63A8\u5E7F\uFF0C\u5E16\u5B50\u6548\u679C\u53EF\u63D0\u5347\u7EA6\xA03~5\u500D\uFF01" + (this.isPackage ? '' : "<div>\u7F6E\u9876\u9875\u9762<span>\u7F6E\u9876\u5C06\u5728" + page + "\u9875\u9762\u5C55\u793A</span></div>") + "</p>\n\t\t\t\t\t\t\t\t<ul class=\"commercial_detail_time commercial_top_time clearfix zl_common_allHour fl\" data-allHours=\"" + data.maxSaleHour + "\">" + str + "</ul>\n\t\t\t\t\t\t\t\t<div class=\"commercial_detail_price clearfix\">\n\t\t\t\t\t\t\t\t\t<p class=\"commercial_detail_amount\">\n\t\t\t\t\t\t\t\t\t\t\u5B9E\u4ED8\u91D1\u989D\uFF1A<span class=\"commercial_realPayment\"></span><span>\u5143</span>\n\t\t\t\t\t\t\t\t\t</p>\n\t\t\t\t\t\t\t\t\t<p class=\"commercial_detail_origin\">\n\t\t\t\t\t\t\t\t\t\t\uFF08\u8D26\u6237\u8D44\u91D1\uFF1A<span class=\"commercial_account_balance\"></span>\u5143\uFF09\n\t\t\t\t\t\t\t\t\t</p>\n\t\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t<div class=\"commercial_detail_sure\">\u9A6C\u4E0A\u7F6E\u9876</div>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t\t<div class=\"commercial_detail_top\">\n\t\t\t\t\t\t\t<div class=\"commercial_detail_transparent_bg\"></div>\n                            <div class=\"commercial_detail_resure\">\n                                <p class=\"commercial_detail_toptip\">\u63D0\u793A\uFF1A<span class=\"commercial_detail_close\"></span></p>\n                                <p class=\"commercial_detail_remsg\">\u786E\u8BA4\u5F00\u542F\u7F6E\u9876\u5417\uFF1F</p>\n                                <div class=\"commercial_detail_reoptions\">\n                                    <div class=\"commercial_detail_rright\">\u786E\u5B9A</div>\n                                    <div class=\"commercial_detail_rcancel\">\u53D6\u6D88</div>\n                                </div>\n                            </div>\n                            <div class=\"commercial_detail_err\">\n                                <p class=\"commercial_detail_toptip\">\u63D0\u793A\uFF1A<span class=\"commercial_detail_close\"></span></p>\n                                <p class=\"commercial_detail_remsg\" id=\"commercial_detail_err\"></p>\n                                <div class=\"commercial_detail_reoptions\">\n                                    <div class=\"commercial_detail_rcancel\">\u786E\u5B9A</div>\n                                </div>\n                            </div>\n\t\t\t\t\t\t\t<div class=\"commercial_detailtop_section\">\n\t\t\t\t\t\t\t\t<p class=\"commercial_detail_toptip\">\u60A8\u672C\u6B21\u7F6E\u9876\u4F59\u989D\u4E0D\u8DB3\uFF1A<span id=\"commercial_detail_close\"></span></p>\n\t\t\t\t\t\t\t\t<div id=\"prompty_price\"></div>\n\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t</div>\n\t\t\t \t\t</div>\n\t\t\t \t</div>\n\t\t \t</div>";
+
+	        // return detail;
+
+	        $("body").append(detail);
+	        // 填充价格
+	        _this.fillPrices(data, true);
+	    },
+
+	    // 填充计算所得的还需支付价格、总计价格
+	    fillPrices: function fillPrices(price, tip) {
+	        // 发布页总计金额和应付金额
+	        var $amount = $("#commercial_issue_payPrice");
+	        var $pay = $(".commercial_payPrice");
+	        // 详情页实付款
+	        var $commercial_realPayment = $('.commercial_realPayment');
+	        // 详情页账户资金
+	        var $commercial_account_balance = $('.commercial_account_balance');
+
+	        // 房产新增的会员咨询提示
+	        var $hyt_fc_aftervip = $('.hyt_fc_aftervip');
+
+	        // 每次重新计算之后都更新window.commercial的数据
+	        this.getzhiParam(price);
+
+	        if (tip) {
+	            // 发布页总计金额和应付金额
+	            $amount.html(price.hidden_totalPrice);
+	            $pay.html(price.realPrice + "元");
+
+	            // 详情页实付金额和账户资金
+	            $commercial_realPayment.html(price.realPrice);
+	            $commercial_account_balance.html(price.accountBalance);
+
+	            // 发布页房产会员提示消息
+	            if (this.type == '10' && price.afterVipPrice) {
+	                $hyt_fc_aftervip.find('.hyt_fc_afvprice').html(price.afterVipPrice);
+	                $hyt_fc_aftervip.show();
+	            } else {
+	                $hyt_fc_aftervip.hide();
+	            }
+	        } else {
+	            $amount.html('0.00');
+	            $pay.html('0.00元');
+	            $hyt_fc_aftervip.hide();
+	        }
+	    },
+
+	    // 获取库存数据（发布页和详情页专用）
+	    getStocks: function getStocks() {
+	        var _this = this;
+	        var pageList = JSON.stringify(_this.pingdao);
+	        $jsonp("//infotophttpapi.58.com/inventory/query", $.extend(true, {}, { pageList: pageList, productId: 100, source: _this.param.common.source, type: 0 }), function (result) {
+	            if (result.code != 200 || result.errorcode != 0) {
+	                return;
+	            }
+	            var data = result.data;
+	            // 详情页
+	            if (_this.type == 9) {
+	                // 默认天数的折扣
+	                var defaultDiscount;
+	                // 处理一下hours
+	                var hoursArr = [];
+	                for (var i = 0; i < data.stocks.length; i++) {
+	                    hoursArr.push(data.stocks[i].hours);
+	                    if (data.stocks[i].defaultDays) {
+	                        defaultDiscount = data.stocks[i].discount;
+	                    }
+	                }
+	                var hours = hoursArr.join(',');
+	                // 调用价格计算
+	                getPriceRequest({
+	                    pageList: pageList,
+	                    hours: hours,
+	                    accountBalance: _this.accountBalance,
+	                    defaultDiscount: defaultDiscount
+	                }, function (e) {
+	                    e.maxSaleHour = data.maxSaleHour;
+
+	                    // 把初始化每一条的价格放到data.stocks中去，data.stocks的数据和e.initial中的数据是一一对应的
+	                    for (var _i = 0; _i < e.initial.length; _i++) {
+	                        data.stocks[_i].hidden_totalPrice = e.initial[_i].hidden_totalPrice;
+	                        data.stocks[_i].discountPrice = e.initial[_i].discountPrice;
+	                    }
+	                    e.stocks = data.stocks;
+
+	                    _this.renderDetailDom(e);
+	                    if (_this.quit) {
+	                        $(".commercial_detail_sure").addClass("commercial_detail_quit");
+	                    }
+	                    // 渲染完dom结构之后再调用绑定事件
+	                    _this.domEvent();
+	                });
+	            }
+
+	            // 发布页
+	            if (_this.type == 10) {
+	                $('#commercial').html(_this.renderIssueDom(data));
+	                $("#tg_iframe").height("0px");
+	                _this.domEvent();
+	            }
+
+	            // 埋点
+	            _this.trackClick('ENTER_0001');
+	        });
+	    },
+
+	    // 获取置顶页面
+	    getInitPage: function getInitPage() {
+	        var _this = this;
+
+	        $jsonp("//infotophttpapi.58.com/infoTop/initCreate", {
+	            cateId: _this.param.cateid,
+	            localId: _this.param.local,
+	            productId: 100,
+	            source: _this.param.common.source,
+	            entityType: _this.param.entitytype,
+	            entityId: _this.param.entityidlist
+	        }, function (result) {
+	            // console.log(result)
+	            _this.pingdao = [];
+	            _this.pingdaoName = [];
+	            _this.promptyCitysed = [];
+	            _this.promptyCateed = [];
+	            _this.pricePerHour = [];
+
+	            if (result.code != 200 || result.errorcode != 0) {
+	                return;
+	            }
+	            var data = result.data;
+
+	            for (var item in data.pageList.channels) {
+	                _this.pingdao.push(item);
+	                _this.pingdaoName.push(data.pageList.channels[item].channelName);
+	                if (data.pageList.channels[item].vipDiscount < 1) {
+	                    _this.vipDiscount = true;
+	                }
+	                if (data.pageList.channels[item].isCheck) {
+	                    _this.isPackage = false;
+	                }
+
+	                // 设置点击添加优惠券的参数
+	                _this.promptyCitysed.push(item.split("&")[1]);
+	                _this.promptyCateed.push(item.split("&")[0]);
+	                _this.pricePerHour.push(new decimal(data.pageList.channels[item].price).div(100).toString().match(/\d*\.?\d{0,2}/g)[0]);
+	            }
+
+	            _this.channels = data.pageList.channels;
+	            _this.accountBalance = new decimal(data.balance.common).add(data.balance.business).add(data.balance.cash);
+	            _this.businessDescStr = data.balance.businessDesc + "推广币";
+	            _this.pageList = JSON.stringify(_this.pingdao);
+	            _this.getStocks();
+
+	            // var options = {
+	            // 	channels: _this.channels,
+	            // 	balance: data.balance,
+	            // 	payLay: [
+	            // 		{
+	            // 			workLine: '通用推广币',
+	            // 			price: data.balance.common
+	            // 		},
+	            // 		{
+	            // 			workLine: data.balance.businessDesc+"推广币",
+	            // 			price: data.balance.business
+	            // 		},
+	            // 		{
+	            // 			workLine: "58现金",
+	            // 			price: data.balance.cash
+	            // 		}
+	            // 	]
+	            // }
+
+	            // 初始化价格计算并传入参数
+
+	            // _this.calculateMode = new CalculateMode(options);
+	            // console.log('_this.calculateMode', _this.calculateMode);
+
+	            _this.couponParam = {
+	                version: '2.0',
+	                userId: data.coupon.userId,
+	                isDispCateId: data.coupon.isDispCateId,
+	                isDispCityId: data.coupon.isDispCityId,
+	                source: data.source,
+	                adSource: data.coupon.adSource,
+	                cateLevel: 2,
+	                cityLevel: 1,
+	                callBack: _this.couponCall()
+	            };
+	            // 非发布页生成新余额对象
+
+	            // if(_this.type != 10){
+	            // 	_this.newYue = new NewYue(options);
+	            // 	// console.log('_this.newYue', _this.newYue)
+	            // }
+	        });
+	    },
+
+	    // 创建优惠券
+	    createCoupon: function createCoupon(data) {
+	        this.coupon = new window.Coupon(data);
+	    },
+
+	    // 优惠券回调
+	    couponCall: function couponCall() {
+	        var _this = this;
+	        return function (coupon) {
+	            var price,
+	                durationHour = '';
+
+	            // var msag = "<span>券</span>优惠券抵扣"+ new Decimal(coupon.couponPrice).div(100).toString().match(/\d*\.?\d{0,2}/g)[0]+"元";
+
+	            if (coupon.auctionType == 2) {
+	                price = 0;
+	                durationHour = coupon.durationHour;
+	                // msag = "<span>券</span>已选择1张时长券，延长"+durationHour+"小时";
+	            } else {
+	                price = coupon.couponPrice;
+	            }
+	            _this.ticket = {
+	                price: price,
+	                type: coupon.couponType,
+	                coupon: coupon.couponCode,
+	                durationHour: durationHour
+
+	                // 价格计算填充
+	                // var pageList = JSON.stringify(_this.pingdao);
+	            };var hours = $('.commercial_top_time .commercial_item_selected').attr('data-hours');
+	            var realHours = _this.ticket.durationHour ? hours * 1 + _this.ticket.durationHour * 1 : hours;
+	            getPriceRequest({
+	                pageList: _this.pageList,
+	                hours: realHours,
+	                couponCode: coupon.couponCode,
+	                accountBalance: _this.accountBalance
+	            }, function (e) {
+
+	                _this.fillPrices(e, true);
+
+	                // 填充优惠券文案
+	                var msag = "<span>券</span>优惠券抵扣" + e.couponDisPrice + "元";
+	                if (coupon.auctionType == 2) {
+	                    msag = "<span>券</span>已选择1张时长券，延长" + durationHour + "小时";
+	                }
+	                $(".commercial_issue_ticket").html(msag);
+	            });
+	        };
+	    },
+
+	    // 点击成功后的回调函数，用于发布页
+	    successCall: function successCall(result) {
+	        // 发布成功
+	        var text = '';
+	        if (this.type == 11) {
+	            // 余额不足
+	            if (result.errorcode == 3 && result.code == 200) {
+	                text = "<div class=\"commercial_tips\">\n\t\t\t\t\t\t\t<p class=\"commercial_title\">\u7F6E\u9876\u4F59\u989D\u4E0D\u8DB3\uFF0C<a href=\"" + result.data.redirectUrl + "\" target=\"_blank\">\u8BF7\u5145\u503C</a></p>\n\t\t\t\t\t\t</div>";
+	            } else if (result.code == 200) {
+	                // 调用成功页
+	                text = "<div class=\"commercial_tips\">\n\t\t\t\t\t\t\t<p class=\"commercial_title\">\u7F6E\u9876\u6210\u529F,\u6263\u6B3E" + new decimal(result.data.orderMoney).div(10000).toString() + "\u5143</p>\n\t\t\t\t\t\t</div>";
+	            }
+	            $("#prompty_price").html(text);
+	            return;
+	        }
+	    },
+
+	    // 获取支付提交参数
+	    getPayUrl: function getPayUrl(price) {
+	        var _this = this;
+	        var hours = $('#prompty_time .commercial_item_selected').attr('data-hours');
+	        var realHours = _this.ticket.durationHour ? hours * 1 + _this.ticket.durationHour * 1 : hours;
+	        var url = $.extend(true, {}, urlParam, {
+	            hours: realHours,
+	            type: 0,
+	            amount: new decimal(price.hidden_totalPrice).mul(10000).toNumber(),
+	            waitPay: new decimal(price.payPrice).mul(10000).toNumber(),
+	            pageList: JSON.stringify(_this.pingdao),
+	            couponCode: _this.ticket.coupon,
+	            payType: $("#prompty_price .zl_pay_mode .icon-sanjiaoxuanzhong").attr("data-check")
+	        });
+	        return url;
+	    },
+
+	    // 事件绑定
+	    domEvent: function domEvent() {
+	        var _this = this;
+	        // 发布页'置顶推广'选中
+	        $event($(".commercial_content")).$on('click.wer', '#commercial_issue_select', function (e) {
+	            var $this = $(this);
+	            var check = $this.attr("data-check");
+	            if (check === 'true') {
+	                $this.attr("data-check", "false");
+	                window.commercial.selected = false;
+	                _this.trackClick('STATUS_0002');
+	                $this.removeClass('commercial_issue_button_checked');
+	                $('.commercial_auto').attr("data-check", "false");
+	                $('.commercial_auto').removeClass('autopay_checked');
+	            } else {
+	                $this.attr("data-check", "true");
+	                window.commercial.selected = true;
+	                _this.trackClick('STATUS_0001');
+	                $this.addClass('commercial_issue_button_checked');
+	            }
+	            $(".commercial_issue_ticket").html("<span>券</span>添加优惠券");
+
+	            _this.ticket = { price: 0, coupon: '', durationHour: '' };
+
+	            // 价格计算填充
+	            var hours = $('.commercial_top_time .commercial_item_selected').attr('data-hours');
+	            getPriceRequest({ pageList: _this.pageList, hours: hours, accountBalance: _this.accountBalance }, function (e) {
+	                _this.fillPrices(e, check !== 'true');
+	            });
+
+	            window.event ? window.event.cancelBubble = true : e.stopPropagation();
+	            window.event ? window.event.returnValue = false : e.preventDefault();
+	            return false;
+	        })
+	        //发布页自动续费
+	        .$on('click', '.commercial_auto', function () {
+	            var $this = $(this);
+	            var check = $this.attr("data-check");
+	            var track = 'OTHER_0001';
+	            if ($('#commercial_issue_select').attr('data-check') != 'true') {
+	                return false;
+	            }
+	            if (check === 'true') {
+	                $this.attr("data-check", "false");
+	                window.commercial.autoRenewal = 0;
+	                track = 'OTHER_0002';
+	                $this.removeClass('autopay_checked');
+	            } else {
+	                $this.attr("data-check", "true");
+	                window.commercial.autoRenewal = 1;
+	                $this.addClass('autopay_checked');
+	            }
+	            _this.trackClick(track);
+	        })
+	        // 购买时间选择
+	        .$on('click', '.commercial_top_time li', function () {
+	            var $this = $(this);
+	            // 发布页如果“置顶推广”没有选中，则直接return
+	            if ($("#commercial_issue_select").attr("data-check") === "false") {
+	                return;
+	            }
+	            // 如果当前项已经被选中，那么不执行，直接return
+	            if ($this.hasClass('commercial_item_selected')) {
+	                return;
+	            }
+
+	            // 如果置顶已售罄或者不能购买
+	            if ($this.hasClass("zl_time_quit")) {
+	                return false;
+	            }
+	            $(".commercial_issue_ticket").html("<span>券</span>添加优惠券");
+	            _this.ticket = { price: 0, coupon: '', durationHour: '' };
+	            // 改变选中和未选中的样式
+	            $this.addClass('commercial_item_selected').siblings().removeClass('commercial_item_selected');
+
+	            // 计算价格并填充
+	            var hours = $this.attr('data-hours');
+	            getPriceRequest({ pageList: _this.pageList, hours: hours, accountBalance: _this.accountBalance }, function (e) {
+	                _this.fillPrices(e, true);
+	            });
+	            _this.trackClick('DATE_0' + $this.attr("data-hours"));
+	        })
+	        // 详情页入口关闭
+	        .$on('click', '.commercial_min', function () {
+	            $('.commercial_transparent_bg').hide();
+	            $("#prompty_time").hide();
+	            _this.trackClick("status_0004");
+	        })
+	        // 详情页点击“马上置顶”
+	        .$on('click', '.commercial_detail_sure', function () {
+	            _this.trackClick('STATUS_0003');
+
+	            // 请求价格
+	            var hours = $(".commercial_top_time .commercial_item_selected").attr("data-hours");
+	            // var pageList = JSON.stringify(_this.pingdao);
+	            getPriceRequest({ pageList: _this.pageList, hours: hours, accountBalance: _this.accountBalance }, function (e) {
+	                e.businessDescStr = _this.businessDescStr;
+	                // console.log(e)
+	                // 还需支付的金额大于0
+	                if (e.payPrice * 1 > 0) {
+	                    // 详情页余额不足展示扣费详情
+	                    if (_this.type == 9) {
+	                        $(".commercial_detail_top").find('.commercial_detailtop_section').show();
+	                        $(".commercial_detail_top").find('.commercial_detail_resure').hide();
+	                        $(".commercial_detail_top").show();
+	                        // 主要用于价格不足用
+	                        newYue.init(e);
+	                        return;
+	                    }
+	                } else {
+	                    // 余额足够，弹出二次确认弹窗
+	                    $(".commercial_detail_top").find('.commercial_detailtop_section').hide();
+	                    $(".commercial_detail_top").find('.commercial_detail_resure').show();
+	                    $(".commercial_detail_top").show();
+	                    _this.enoughUrl = _this.getPayUrl(e);
+	                }
+	            });
+	        })
+	        // 详情页二次确认弹窗点击确定
+	        .$on('click', '.commercial_detail_rright', function () {
+	            _this.submit(_this.enoughUrl);
+	        })
+	        // 详情页弹窗关闭
+	        .$on('click', '#commercial_detail_close, .commercial_detail_top .commercial_detail_close, .commercial_detail_top .commercial_detail_rcancel', function () {
+	            $(".commercial_detail_top").hide();
+	            $(".commercial_detail_resure").hide();
+	            $(".commercial_detailtop_section").hide();
+	            $(".commercial_detail_err").hide();
+	            _this.trackClick('STATUS_0002');
+	        })
+	        // 添加优惠券
+	        .$on("click", '.commercial_issue_ticket', function () {
+	            if ($("#commercial_issue_select").attr("data-check") === "false") {
+	                return;
+	            }
+
+	            // 价格计算填充
+	            var hours = $(".commercial_top_time .commercial_item_selected").attr("data-hours");
+	            var param = {};
+
+	            param.cityId = _this.promptyCitysed.join("$");
+	            param.cateId = _this.promptyCateed.join("$");
+	            param.pricePerHour = _this.pricePerHour.join("$");
+	            param.topTime = hours;
+	            param.usableType = -1;
+	            param.allHour = $(".zl_common_allHour").attr("data-allHours");
+
+	            // var pageList = JSON.stringify(_this.pingdao);
+	            getPriceRequest({ pageList: _this.pageList, hours: hours, accountBalance: _this.accountBalance }, function (e) {
+	                param.topprice = e.couponPrice;
+	                if (!_this.coupon) {
+	                    _this.createCoupon(_this.couponParam);
+	                }
+	                _this.coupon.showCoupons(param);
+	            });
+
+	            _this.trackClick('COUPON_0001');
+	        })
+	        // 去支付的接口
+	        .$on('click', '.zl_submit_sure', function () {
+	            if ($(this).hasClass("zl_submit_quit")) {
+	                return false;
+	            }
+
+	            // 去支付的时候请求价格
+	            var hours = $(".commercial_top_time .commercial_item_selected").attr("data-hours");
+	            // var pageList = JSON.stringify(_this.pingdao);
+	            getPriceRequest({
+	                pageList: _this.pageList,
+	                hours: hours,
+	                couponCode: _this.ticket.coupon,
+	                accountBalance: _this.accountBalance
+	            }, function (e) {
+	                _this.submit(_this.getPayUrl(e));
+	            });
+	            // _this.submit(_this.getPayUrl());
+	            _this.trackClick('PAY_0001');
+	        })
+	        // 支付方式选择
+	        .$on('click', '.zl_pay', function () {
+	            $(this).addClass("icon-sanjiaoxuanzhong").siblings().removeClass("icon-sanjiaoxuanzhong");
+	            _this.trackClick('PAY_0' + $(this).attr("data-check"));
+	        });
+	    },
+
+	    // 发布页、详情页的提交回调
+	    submit: function submit(url) {
+	        var _this = this;
+	        var data = {};
+	        if (url) {
+	            url.productId = 100;
+	            url.entityId = _this.param.entityidlist;
+	            url.entityType = _this.param.entitytype;
+	            url.chargePage = 0;
+	            url.source = _this.param.common.source;
+	            data = url;
+	        } else {
+	            data = {
+	                key: _this.param.legokey,
+	                entityId: _this.param.entityid,
+	                entityType: _this.param.entitytype,
+	                productId: 100,
+	                chargePage: 0,
+	                source: _this.param.common.source,
+	                payType: "wx"
+	            };
+	        }
+	        $jsonp("//infotophttpapi.58.com/infoTop/create", data, function (result) {
+	            if (result.code != 200) {
+	                if (_this.type != 11) {
+	                    $("#commercial_detail_err").html(result.msg);
+	                    $(".commercial_detail_top").find('.commercial_detail_err').show();
+	                    $(".commercial_detail_top").find('.commercial_detailtop_resure').hide();
+	                    $(".commercial_detail_top").find('.commercial_detailtop_section').hide();
+	                    $(".commercial_detail_top").show();
+	                }
+	                return false;
+	            }
+	            var data = result.data;
+	            if (_this.type == 11) {
+	                _this.successCall(result);
+	            } else {
+	                if (result.code == 200 && result.errorcode == 3) {
+	                    window.location.href = data.redirectUrl;
+	                } else {
+	                    location.href = "//zhiding.58.com/pc/infotop/resultZhiding?entityType=" + url.entityType + "&entityId=" + url.entityId + "&productId=100&source=" + url.source + "&adId=" + data.adId;
+	                }
+	            }
+	        });
+	    },
+	    // 获取返回的数据，添加到window.commercial中
+	    getzhiParam: function getzhiParam(price) {
+	        var _this = this;
+	        var hours = $('#prompty_time .commercial_item_selected').attr('data-hours');
+	        var realHours = this.ticket.durationHour ? hours * 1 + this.ticket.durationHour * 1 : hours;
+	        $.extend(true, window.commercial, {
+	            hours: realHours,
+	            amount: new decimal(price.hidden_totalPrice).mul(10000).toNumber(),
+	            waitPay: new decimal(price.payPrice).mul(10000).toNumber(),
+	            pageList: JSON.stringify(_this.pingdao),
+	            couponCode: _this.ticket.coupon
+	        });
+	    },
+
+	    // 添加埋点的方法
+	    trackClick: function trackClick(param) {
+	        if (!window.clickLog || typeof window.clickLog !== "function") {
+	            window.trackStorage.push(param);
+	            return false;
+	        }
+	        window.trackStorage = [];
+	        clickLog('from="' + param + '"&"' + this.trackLogParam);
+	    }
+	};
+
+	// 给每个a链接新添加一个class commercial_link_hyt，用于此次append置顶入口布点dom时判断当前页面是否已经有了置顶布点的dom，如果已经有了则不再append，否则则append
+
+
+	var issueDom = {
+			"7": "<a class=\"commercial_link commercial_link_hyt\" href=\"javascript:void(0)\" data-href=\"dataLink\">isTypeText</a>",
+			"20": "<a target=\"_blank\" class=\"commercial_link_hyt\" href=\"dataLink\">isTypeText</a>",
+			15: "<div class=\"commercial_vip\" style=\"height:66px;\"><p class=\"commercial_empty\"></p><h3 class=\"commercial_vip_title\">\u7F6E\u9876</h3><p class=\"commercial_vip_tips\">\u7F6E\u9876\u5C55\u793A\u5728\u9875\u9762\u6700\u9876\u90E8</p><span data-href=\"dataLink\" class=\"commercial_vip_top commercial_link commercial_link_hyt\">isTypeText</span></div>",
+			1: "<span><a class=\"commercial_link commercial_link_hyt\" href=\"javascript:void(0)\" data-href=\"dataLink\">isTypeText</a></span>",
+			0: "<span><a class=\"commercial_link commercial_link_hyt\" href=\"javascript:void(0)\" data-href=\"dataLink\">isTypeText</a></span>",
+			6: "<em class=\"qtlist_status2\"><a class=\"commercial_link commercial_link_hyt\" href=\"javascript:void(0)\" data-href=\"dataLink\">isTypeText</a></em>",
+			"26": "<div class=\"commercial_vip\"><p class=\"commercial_empty\"></p><h3 class=\"commercial_vip_title\">\u7F6E\u9876</h3><p class=\"commercial_vip_tips\">\u7F6E\u9876\u5C55\u793A\u5728\u9875\u9762\u6700\u9876\u90E8</p><span data-href=\"dataLink\" class=\"commercial_vip_top commercial_link commercial_link_hyt\">isTypeText</span></div>"
+	};
+
+	function issueDom$1 (commonType, isType, link) {
+			var type = ",21,22,25,".indexOf(',' + commonType + ',') > -1 ? 26 : commonType;
+			var manege = isType ? ',1,0,6,'.indexOf(',' + commonType + ',') > -1 ? '置顶管理' : '管理' : '置顶';
+			return issueDom[type].replace("dataLink", link).replace("isTypeText", manege);
+	}
+
+	// 给每个a链接新添加一个class commercial_link_hyt，用于此次append置顶入口布点dom时判断当前页面是否已经有了置顶布点的dom，如果已经有了则不再append，否则则append
+
+
+	var issueDom$2 = {
+				"26": "<div class=\"commercial_vip\">\n\t\t\t\t\t\t<p class=\"commercial_empty\"></p><h3 class=\"commercial_vip_title\">\u5934\u6761</h3><p class=\"commercial_mqtt_tips\">\u804C\u4F4D\u5217\u8868\u9876\u90E8\u5C55\u793A\uFF0C\u7A00\u7F3A\u9AD8\u6D41\u91CF\u5C55\u4F4DdataText</p>\n\t\t\t\t\t\t<span data-href=\"dataLink\" class=\"commercial_vip_top commercial_link commercial_link_zl\">isTypeText</span>\n\t\t\t\t\t</div>"
+	};
+
+	function mqttDom (commonType, isType, link, text) {
+				var type = ",25,".indexOf(',' + commonType + ',') > -1 ? 26 : commonType;
+				var manege = isType ? '管理' : '新建';
+				return issueDom$2[type].replace("dataLink", link).replace("dataText", text).replace("isTypeText", manege);
+	}
+
+	// 列表布点
+	function ManageIssue() {
+		// 当前初始化是否执行的标志，true-> 未执行；false -> 已执行
+		this.eventFlag = true;
+	}
+
+	ManageIssue.prototype = {
+		init: function init() {
+			this.param = window.commercial;
+			// TODO: 防止多次发起请求修改，待上线
+			// if(!this.param.entityidlist) {
+			// 	return;
+			// }
+
+			this.getIssueList(100, this.setIssueTools);
+
+			if (this.param.common.commonType == 25 || this.param.common.commonType == 26) {
+
+				this.getIssueList(10011, this.getMqttList);
+			}
+
+			this.domEvent(this.eventFlag);
+			this.eventFlag = false;
+		},
+
+		// 根据参数请求置顶布点
+		getIssueList: function getIssueList(productId, func) {
+			var _this = this;
+			$jsonp("//infotophttpapi.58.com/state/get", {
+				entityType: _this.param.entitytype,
+				infoIds: _this.param.entityidlist.replace(/,/g, "|"),
+				productIds: productId,
+				isExisted: 1,
+				isAvailabe: 1
+			}, function (result) {
+				// success 方法
+
+				if (result.errorcode == 0 && result.code == 200) {
+					func.call(_this, result.data, productId);
+				}
+			}, function () {
+				// error方法
+			});
+		},
+
+		// 根据参数请求名企头条布点
+		getMqttList: function getMqttList(exist, productId) {
+			var _this = this;
+			$jsonp("//infotophttpapi.58.com/infoTop/queryInfos", {
+				entityType: _this.param.entitytype,
+				entityIds: _this.param.entityidlist,
+				productId: productId
+			}, function (result) {
+				// success 方法
+				if (result.code == 200) {
+					_this.mqttCreatedData(result, exist, productId);
+				}
+			}, function () {
+				// error方法
+				// _this.flag = true;
+			});
+		},
+
+		// 时间补全
+
+		addDateLength: function addDateLength(date) {
+			if (date < 10) {
+				return "0" + date;
+			} else {
+				return date;
+			}
+		},
+
+		// 名企头条时间处理
+
+		mqttDateOprate: function mqttDateOprate(star, end) {
+			var state = '<br>推广中，${time}结束。',
+			    date = '',
+			    //判断是新建还是管理
+			star = (star.substr(0, 4) + '-' + star.substr(4, 2) + '-' + star.substr(6, 2) + '-' + star.substr(8, 2) + '-' + star.substr(10, 2) + '-' + star.substr(12, 2)).split("-"),
+			    splitEnd = end.substr(0, 4) + '/' + end.substr(4, 2) + '/' + end.substr(6, 2) + ' ' + end.substr(8, 2) + ':' + end.substr(10, 2) + ':' + end.substr(12, 2),
+			    end = new Date(new Date(splitEnd).getTime() - 1000),
+			    end = (end.getFullYear() + '-' + this.addDateLength(end.getMonth() + 1) + '-' + this.addDateLength(end.getDate()) + '-' + this.addDateLength(end.getHours()) + '-' + this.addDateLength(end.getMinutes()) + '-' + this.addDateLength(end.getSeconds())).split("-"),
+			    nowTime = new Date(),
+			    now = (nowTime.getFullYear() + '-' + this.addDateLength(nowTime.getMonth() + 1) + '-' + this.addDateLength(nowTime.getDate()) + '-' + this.addDateLength(nowTime.getHours()) + '-' + this.addDateLength(nowTime.getMinutes()) + '-' + this.addDateLength(nowTime.getSeconds())).split("-"),
+			    strRange = new Date(star[0] + "/" + star[1] + "/" + star[2]) - new Date(now[0] + "/" + now[1] + "/" + now[2]),
+			    endRange = new Date(end[0] + "/" + end[1] + "/" + end[2]) - new Date(now[0] + "/" + now[1] + "/" + now[2]);
+
+			if (now.join("") - star.join("") < 0) {
+				state = "<br>新建成功，${time}开始推广。";
+				if (star[0] - now[0] > 0) {
+					date += "明年" + star[1] + "月" + star[2] + "日";
+				} else if (strRange == 24 * 60 * 60 * 1000) {
+					date += "明天";
+				} else if (strRange == 0) {
+					date += "今天";
+				} else {
+					date += star[1] + "月" + star[2] + "日";
+				}
+			} else {
+				if (end[0] - now[0] > 0) {
+					date += "明年" + star[1] + "月" + star[2] + "日";
+				} else if (endRange == 24 * 60 * 60 * 1000) {
+					date += "明天";
+				} else if (endRange == 0) {
+					date += "今天";
+				} else {
+					date += end[1] + "月" + end[2] + "日";
+				}
+			}
+
+			return state.replace("${time}", date);
+		},
+
+		// 民企头条数据封装
+
+		mqttCreatedData: function mqttCreatedData(data, exist, productId) {
+			for (var item in exist) {
+				var prod = exist[item][productId];
+				if (prod.availabe) {
+					var isType = prod.existed;
+					var url = '//brand.58.com/lvzhou/advistor/advert/?entityId=' + item + '&entityType=' + this.param.entitytype + '&productId=10011&source=' + this.param.common.source;
+					var time = '';
+					if (isType) {
+						time = this.mqttDateOprate(data.data[item].startTime + '', data.data[item].endTime + '');
+						url += '&brandId=' + data.data[item].subscribeId;
+					}
+					var ele = mqttDom(this.param.common.commonType, isType, url, time),
+					    $commercialItem = $('#commercial' + item),
+					    $iframe = $('#tuiguang_' + item);
+					if ($commercialItem.find('.commercial_link_zl').length <= 0) {
+						// 当前帖子中没有置顶入口布点，则append
+						$commercialItem.append(ele);
+					} else {
+						// 当前帖子中有置顶入口布点，则直接return
+						return;
+					}
+					$commercialItem.addClass("commercial_vip_context commercial_mqtt");
+					$commercialItem.height("100px");
+					// $commercialItem.addClass("commercial_mqtt");
+					$iframe[0].setAttribute('style', 'height:49px !important');
+				}
+			}
+		},
+
+		// 获取各个页面的布点dom结构
+		getIssueDom: function getIssueDom(isType, id) {
+			// 处理一下link
+			var link = '//zhiding.58.com/pc/infotop/' + (isType ? 'manageZhiding' : 'createZhiding') + '?entityType=' + this.param.entitytype + '&entityId=' + id + '&productId=100&source=' + this.param.common.source;
+			var itemDom = issueDom$1(this.param.common.commonType, isType, link);
+			return itemDom;
+		},
+
+		// 数组转换为对象，key值为entityId,主要用于优培，将优培的数组转换为对象，方便渲染的时候，直接取值
+
+		arrayTOobj: function arrayTOobj(array) {
+			var obj = {};
+			for (var i = 0; i < array.length; i++) {
+				obj[array[i].infoId] = array[i];
+			}
+			return obj;
+		},
+		// 实现布点，productId表示页面类型，置顶100
+		setIssueTools: function setIssueTools(data, productId) {
+			var youpei;
+			if (this.param.infolist && this.param.infolist.length > 0) {
+				youpei = this.arrayTOobj(this.param.infolist);
+			}
+			for (var item in data) {
+				var id = item;
+				var product = data[item][productId];
+				var isType = false;
+				if (product.availabe) {
+					isType = product.existed;
+
+					var $commercialItem = $('#commercial' + item);
+
+					if ($commercialItem.find('.commercial_link_hyt').length <= 0) {
+
+						var ele = this.getIssueDom(isType, id);
+
+						if (this.param.common.commonType == 15) {
+							$("#tuiguang_" + item).height("67.5");
+						}
+
+						if (this.param.common.commonType == 21 || this.param.common.commonType == 22 || this.param.common.commonType == 25 || this.param.common.commonType == 26) {
+
+							var youpeiList = youpei ? youpei[id] : {};
+
+							if (youpeiList.isJobTrain) {
+								// var isTypeText = ;
+								ele = '<div class="commercial_vip"><p class="commercial_empty"></p><h3 class="commercial_vip_title">\u4F18\u57F9</h3><p class="commercial_vip_tips">\u8DE8\u7C7B\u56FA\u5B9A\u4F4D\u7F6E\u9AD8\u6D41\u91CF\u5C55\u793A</p><a href="//employer.58.com/zhiyepeixun?orderid=' + youpeiList.youPeiOrderId + '&infoid=' + id + '" target="_blank"><span data-href="dataLink" class="commercial_vip_top commercial_link_hyt">' + (youpeiList.isYouPeiOrder ? '管理' : '新建') + '</span></a></div>';
+							} else {
+								ele = this.getIssueDom(isType, id);
+							}
+
+							if (!$commercialItem.attr("style") || $commercialItem.attr("style").indexOf("100px") == -1) {
+								$("#tuiguang_" + item)[0].setAttribute('style', 'height:75px !important');
+							}
+							$("#commercial" + item).addClass("commercial_vip_context");
+						} else {
+							ele = this.getIssueDom(isType, id);
+						}
+
+						// 当前帖子中没有置顶入口布点，则append
+						$commercialItem.append(ele);
+					} else {
+						// 当前帖子中有置顶入口布点，则直接return
+						return;
+					}
+				}
+			}
+		},
+
+		// 事件绑定
+		domEvent: function domEvent(eventFlag) {
+			if (!eventFlag) {
+				return;
+			}
+			var _this = this;
+			$event($('body')).$on('click', '.commercial_link', function (e) {
+				var url = $(this).attr("data-href"),
+				    html = "置顶";
+				if (url.indexOf("brand.58.com") > -1) {
+					html = "头条";
+				}
+				// 代客中心无需在iframe中打开，所以此时判断是否是代客中心，是则直接新建页打开，否则创建iframe打开
+				if (url) {
+					_this.createIframe(url, html);
+				} else {
+					return;
+				}
+				// _this.createIframe(url);
+				window.event ? window.event.cancelBubble = true : e.stopPropagation();
+			});
+
+			$event(top.$('body')).$on('click', '.commercial_close', function (e) {
+				var url = window.top.$("#commercial_iframe").attr("src");
+				if (url && url.indexOf("status=success") > -1) {
+					_this.closeRefresh();
+					return;
+				}
+				window.top.$('#commercial_box_zl').remove();
+			});
+		},
+
+		// 关闭弹窗并刷新页面
+
+		closeRefresh: function closeRefresh() {
+			top.$('#commercial_box_zl').remove();
+			top.location.reload();
+		},
+
+		// 创建顶层ifream
+		createIframe: function createIframe(url, type) {
+			top.$("#commercial_box_zl").remove();
+			var div = '\n        \t<div id="commercial_box_zl" style="width: 100%; height: 100%; position: fixed; z-index: 1987; top: 0px; left: 0px; overflow: hidden; ">\n        \t\t<div style="position: fixed; z-index: 1988; top: 0px; left: 0px; right: 0; bottom: 0;overflow: hidden; background: rgb(0, 0, 0);opacity: 0.6;filter: Alpha(opacity=60);"></div>\n                <div style="position: absolute; top:0;left:0;bottom:0;right:0;margin:auto;width:820px;height:610px;background:#fff;border:5px solid rgba(0,0,0,.5); z-index:2000;">\n                    <div style="overflow:hidden;padding-left:10px;height:30px;text-shadow: 0 1px 0 rgba(255, 255, 255, .7);background-color: #bdc6cd;">\n                        <span style="float:left;line-height:30px;font-size:12px;color:#4c5a5f">' + type + '</span>\n                        <span class="commercial_close" style="cursor:pointer;width:40px;height:30px;line-height:30px;font-size:20px;color:#4c5a5f;;text-align:center;float:right;background:url(\'data:image/png;base64,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\') 5px 4px no-repeat;"></span>\n                    </div>\n                    <iframe src="' + url + '" id="commercial_iframe" name="Openinfotop_shortCut" frameborder="0" allowtransparency="true" style="width: 100%; height: 580px; border: 0px none;"></iframe>\n                </div>\n            </div>';
+			top.$('body').append(div);
+			//       $event(top.$('body')).$on('click', '.commercial_close', function(e) {
+			// 	if(window.top.$("#commercial_iframe").attr("src").indexOf("status=success")>-1){
+			// 		_this.closeRefresh();
+			// 		return ;
+			// 	}
+			// 	window.top.$('#commercial_box_zl').remove();
+			// })
+		}
+	};
+
+	var page = function page(commonType) {
+		var page = null;
+		// 存储埋点的数据
+		window.trackStorage = [];
+		if (commonType == 11 && window.commercial.legokey == 'nodata') {
+			page = null;
+		} else if (window.commercial && (commonType == 9 || commonType == 10 || commonType == 11)) {
+			window.commercial_issue = page = new IssueDetail();
+
+			if (commonType == 9) {
+				page = getHuiDu(page);
+			} else if (commonType == 10 && (window.commercial.local == 0 || window.commercial.cateid == 0)) {
+				page = null;
+			} else if (commonType == 10) {
+				// 引入优惠券的css和js
+				addCss('//c.58cdn.com.cn/crop/ecom/pc/coupon/css/coupon.css?v=' + new Date().getTime());
+				addJs('//j1.58cdn.com.cn/crop/ecom/pc/coupon/js/coupon.js?v=' + new Date().getTime());
+			}
+
+			// 加载埋点的js
+			if (!window.clickLog || typeof window.clickLog !== "function") {
+				// 埋点js onload方法
+				var fn = function fn() {
+					for (var i = 0; i < window.trackStorage.length; i++) {
+						window.commercial_issue.trackClick(window.trackStorage[i]);
+					}
+				};
+
+				addJs('//tracklog.58.com/referrer4.js?v=0', fn);
+			}
+		} else {
+			window.commercial_massage = page = new ManageIssue();
+		}
+		// console.log(page)
+		return page;
+	};
+	// 在页面中添加CSS
+	function addCss(url) {
+		var cssNode = document.createElement("link");
+		cssNode.setAttribute("rel", "stylesheet");
+		cssNode.setAttribute("href", url);
+		document.getElementsByTagName("head")[0].appendChild(cssNode);
+	}
+	// 在页面中添加JS
+	function addJs(url, callBack) {
+		var jsNode = document.createElement("script");
+		jsNode.setAttribute("type", "text/javascript");
+		jsNode.setAttribute("src", url);
+		document.getElementsByTagName("body")[0].appendChild(jsNode);
+		if (callBack) {
+			jsNode.onload = callBack;
+		}
+	}
+
+	function getHuiDu(callBack) {
+		return {
+			init: function init() {
+				$jsonp("//infotophttpapi.58.com/state/get", { entityType: window.commercial.entityType, infoIds: (window.commercial.entityidlist + "").replace(/,/g, "|"), productIds: 100, isExisted: 1, isAvailabe: 1 }, function (res) {
+					if (res.errorcode == 0 && res.code == 200 && res.data[window.commercial.entityidlist + ""][100].availabe) {
+						callBack.init();
+					}
+				});
+			}
+		};
+	}
+
+	console.log('commercisl   1');
+
+	function loadContent() {
+		var page$$1 = page(window.commercial.common.commonType);
+		(function (jq) {
+			var entrance = true;
+
+			if (jq) {
+				entrance = page$$1 && addJquery(page$$1, 1);
+			} else {
+				entrance = page$$1 && page$$1.init();
+			}
+		})(!(window.jQuery || window.$));
+	}
+
+	function hasCommon() {
+		if (window.commercial && window.commercial.common) {
+			var type = window.commercial.common.commonType,
+			    youpei = type == 21 || type == 22 || type == 25 || type == 26;
+			if (window.commercial.entityidlist === undefined && youpei) {
+				return false;
+			}
+			console.log('commercisl   2');
+			loadContent();
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	if (!hasCommon()) {
+		var waitCommon = setInterval(function () {
+			if (hasCommon()) {
+				clearInterval(waitCommon);
+			}
+		}, 200);
+	}
+
+	setTimeout(function () {
+		clearInterval(waitCommon);
+	}, 300000);
+
+}());
+//# sourceMappingURL=commercial_peg.js.map

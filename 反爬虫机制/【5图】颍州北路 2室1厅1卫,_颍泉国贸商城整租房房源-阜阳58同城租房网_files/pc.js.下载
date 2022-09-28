@@ -1,0 +1,235 @@
+(function () {
+  'use strict';
+
+  var ENVIRONMENT = "production";
+
+  function login(callback, ticket, type, path) {
+    var ajkReg = /.anjuke.com$/;
+    var wubaReg = /.58.com$/;
+    var host = window.location.host;
+    path = path || window.location.href;
+
+    if (ajkReg.test(host)) {
+      window.location.href = "//login.anjuke.com/login/form?history=" + this.jsBase64.encode(path);
+    } else if (wubaReg.test(host)) {
+      window.location.href = window.location.protocol + "//passport.58.com/login/?path=" + encodeURIComponent(path);
+    }
+  }
+
+  function logout(path) {
+    var ajkReg = /.anjuke.com$/;
+    var wubaReg = /.58.com$/;
+    var host = window.location.host;
+    path = path || window.location.href;
+
+    if (ajkReg.test(host)) {
+      if (window.navigator.userAgent.indexOf('Mobile') > -1 || window.navigator.userAgent.indexOf('mobile') > -1) {
+        window.location.href = window.location.protocol + "//m.anjuke.com/member/logout/?history=" + this.jsBase64.encode(path);
+      } else {
+        window.location.href = window.location.protocol + "//member.anjuke.com/user/logout/?history=" + this.jsBase64.encode(path);
+      }
+    } else if (wubaReg.test(host)) {
+      window.location.href = window.location.protocol + "//passport.58.com/logout?path=" + encodeURIComponent(path) + "&back=now";
+    }
+  }
+
+  function pageshow(callback) {
+    if (callback === void 0) {
+      callback = function () {};
+    }
+
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) {
+        callback();
+      }
+    });
+  }
+
+  /**
+   * m,wx,mp 路由跳转
+   * @param url
+   */
+
+  function redirect(params, backReload) {
+    if (backReload === void 0) {
+      backReload = false;
+    }
+
+    this.debug && this.debug.log(params, '调用路由跳转param参数');
+    this.monitor && this.monitor.redirect && this.monitor.redirect.click(params, this.plat || 'common');
+
+    if (!params) {
+      return;
+    }
+
+    if (backReload) {
+      pageshow(window.location.reload);
+    }
+
+    if (typeof params === 'string') {
+      window.location.href = params;
+      return;
+    } else {
+      var url = params.content && params.content.url || '';
+
+      if (!url) {
+        return;
+      }
+
+      window.location.href = url;
+    }
+  }
+
+  function back() {
+    window.history.back();
+  }
+
+  /**
+   * 设置标题
+   */
+  function setTitle(title) {
+    if (title === void 0) {
+      title = '';
+    }
+
+    document.title = title;
+  }
+
+  function reload() {
+    window.location.reload();
+  }
+
+  var ie886SDK = '//pages.anjukestatic.com/usersite/ie/IE886SDK_20200313_01.js';
+  function ie886Init(config, loadjs) {
+    loadjs(ie886SDK, function () {
+      if (window.IE886SDK) {
+        window.IE886SDK(config);
+      }
+    });
+  }
+
+  var mSubClass =
+  /** @class */
+  function () {
+    function mSubClass(resources) {
+      this.defaultConfig = {
+        autoLoadSwitch: true,
+        autoLoadDefault: true,
+        autoLoadArr: [],
+        needIe886: false
+      };
+      this.plat = 'pc';
+      this.autoLoadArr = [];
+      this.login = login;
+      this.logout = logout;
+      this.redirect = redirect;
+      this.back = back;
+      this.setTitle = setTitle;
+      this.pageshow = pageshow;
+      this.reload = reload;
+      this.ie8Proceed();
+      var autoLoadArr = resources.config.autoLoadArr;
+
+      if (resources.fun) {
+        this.debug = resources.fun.debug;
+        this.jsBase64 = resources.fun.jsBase64;
+        this.mixAutoLoad = resources.fun.autoLoad;
+        this.monitor = resources.fun.monitor;
+        this.deepAssign = resources.fun.deepAssign;
+      }
+
+      this.deepAssign(this.defaultConfig, resources.config);
+
+      if (this.defaultConfig.autoLoadDefault === false) {
+        this.defaultConfig.autoLoadArr = autoLoadArr;
+      } else {
+        this.defaultConfig.autoLoadArr = this.autoLoadArr.concat(autoLoadArr);
+      }
+
+      this.debug.log(this.defaultConfig, 'PC Init Config');
+
+      if (this.defaultConfig.autoLoadSwitch === false) {
+        this.mixAutoLoad.autoLoad([]);
+      } else {
+        this.mixAutoLoad.autoLoad(this.defaultConfig.autoLoadArr);
+      }
+
+      if (this.defaultConfig.needIe886 === true) {
+        ie886Init(this.defaultConfig.ie886Config || {}, resources.fun.loadjs);
+      }
+    }
+
+    mSubClass.prototype.ie8Proceed = function () {
+      if (!Array.prototype.forEach) {
+        Array.prototype.forEach = function forEach(callback, thisArg) {
+          var T, k;
+
+          if (this == null) {
+            throw new TypeError("this is null or not defined");
+          }
+
+          var O = Object(this);
+          var len = O.length >>> 0;
+
+          if (typeof callback !== "function") {
+            throw new TypeError(callback + " is not a function");
+          }
+
+          if (arguments.length > 1) {
+            T = thisArg;
+          }
+
+          k = 0;
+
+          while (k < len) {
+            var kValue;
+
+            if (k in O) {
+              kValue = O[k];
+              callback.call(T, kValue, k, O);
+            }
+
+            k++;
+          }
+        };
+      }
+
+      if (!Array.prototype.indexOf) {
+        Array.prototype.indexOf = function (elt
+        /*, from*/
+        ) {
+          var len = this.length >>> 0;
+          var from = Number(arguments[1]) || 0;
+          from = from < 0 ? Math.ceil(from) : Math.floor(from);
+          if (from < 0) from += len;
+
+          for (; from < len; from++) {
+            if (from in this && this[from] === elt) return from;
+          }
+
+          return -1;
+        };
+      }
+    };
+
+    mSubClass.prototype.ready = function (callback) {
+      this.mixAutoLoad.ready(callback);
+    };
+
+    mSubClass.prototype.callApp = function (params) {
+      this.redirect(params.url);
+    };
+
+    mSubClass.prototype.getBridge = function (params) {
+      var callback = params.pc || params.others || function () {};
+
+      this.mixAutoLoad.ready(function () {
+        callback({});
+      });
+    };
+
+    return mSubClass;
+  }();
+  window.FlibInit = mSubClass;
+
+}());

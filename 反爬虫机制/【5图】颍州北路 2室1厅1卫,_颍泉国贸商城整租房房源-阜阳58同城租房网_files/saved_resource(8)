@@ -1,0 +1,8 @@
+var search360AD = [];
+var wbadretcode = 100;
+
+
+var _search360ad_version = 1;
+
+
+try{if(typeof(search_360_afs_request_done) == "function"){search_360_afs_request_done(search360AD);}}catch(e){}

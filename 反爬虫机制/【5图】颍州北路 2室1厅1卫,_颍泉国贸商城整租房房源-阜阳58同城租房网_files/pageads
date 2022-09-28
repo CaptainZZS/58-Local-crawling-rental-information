@@ -1,0 +1,906 @@
+	
+var _ad_type = {
+	google : {
+		id : 1,
+		link : '<a href="//adwords.google.com" target="_blank" style="color:#d2d2d2;">广告</a>', 
+		sidelink : '<a href="//adwords.google.com" target="_blank" style="color:#585858;font-size:12px;font-weight:normal;margin-left:0;padding:0;">广告</a>'
+	},
+	baidu : {
+		id : 2, 
+		link : '<a href="//cpro.baidu.com/" target="_blank" style="color:#d2d2d2;">广告</a>', 
+		sidelink : '<a href="//cpro.baidu.com/" target="_blank" style="color:#585858;font-size:12px;font-weight:normal;margin-left:0;padding:0;">广告</a>'
+	}, 
+	sogou : {
+		id : 3, 
+		link : '<a href="//fuwu.sogou.com/" target="_blank" style="color:#d2d2d2;">广告</a>', 
+		sidelink : '<a href="//fuwu.sogou.com/" target="_blank" style="color:#585858;font-size:12px;font-weight:normal;margin-left:0;padding:0;">广告</a>'
+	}, 
+	ggafc : {
+		id : 4, 
+		link : '<a href="//adwords.google.com" target="_blank" style="color:#d2d2d2;">广告</a>', 
+		sidelink : '<a href="//adwords.google.com" target="_blank" style="color:#585858;font-size:12px;font-weight:normal;margin-left:0;padding:0;">广告</a>'
+	}, 
+	search_360ad :{
+		id: 5,
+		link :'<a href="//e.360.cn/" target="_blank" style="color:#d2d2d2;">广告</a>',
+		sidelink: '<a href="//e.360.cn/" target="_blank" style="color:#585858;font-size:12px;font-weight:normal;margin-left:0;padding:0;">广告</a>'
+	},
+	direction : {
+		id : 6, 
+		link : '<a href="//about.58.com/254.html" target="_blank" style="color: #d2d2d2;">广告</a>', 
+		sidelink : '<a href="//about.58.com/254.html" target="_blank" style="color:#585858;font-size:12px;font-weight:normal;margin-left:0;padding:0;">广告</a>'
+	}
+};
+
+document.write=function(html_str){
+       $(document.body).append(html_str);
+}
+
+
+function trim(str){   
+	str = str.replace(/^(\s| )+/,'');   
+	for(var i=str.length-1; i>=0; i--){   
+		if(/\S/.test(str.charAt(i))){   
+			str = str.substring(0, i+1);   
+			break;   
+		}   
+	}   
+	return str;   
+}  
+
+function addscript(jsname){
+    var new_script = document.createElement("script");
+    new_script.type = "text/javascript";
+    new_script.src = jsname;
+    document.getElementsByTagName('body')[0].appendChild(new_script);
+}
+
+function has_grandson_node(grandfather_node){
+	var istrue = false;
+	if($('#' + grandfather_node).children()){
+		$("#" + grandfather_node).children().each(function(){
+			var grandson = $(this).children();
+			if(grandson.length > 0){
+				istrue = true;
+				return false;
+			}
+		});
+	}
+	return istrue;
+}
+
+function search_js_choice(choice_level, buzu_num){
+	if(choice_level == "sogou"){
+		sogou_search_js(buzu_num, adname_sogouafs, terminaltype, cityname, root_cateid, cateid_l2, page_type, sogou_search_kwd);
+	}else if (choice_level == "google"){
+		if(IslowIE(ua) || isLowSys(ua)){
+			if(terminaltype == "finalpage")
+				sogou_search_js(buzu_num, adname_sogouafs, terminaltype, cityname, root_cateid, cateid_l2, page_type, sogou_search_kwd);
+			else
+				s360_search_js(buzu_num, search_360_fmt, search_360_ch, terminaltype, cityname, root_cateid, cateid_l2, page_type, s360_search_kwd, search_360_clientid, _ad_type);
+		}else{
+			var width = "728px";
+			var linenum = 3;
+			if (terminaltype == "finalpage"){
+				width = "160px";
+				linenum =2;
+			}
+			google_search_js(buzu_num, gg_search_container, gg_search_kwd, google_afs_channel, width, linenum);
+		}
+	}else if (choice_level == "360"){
+		s360_search_js(buzu_num, search_360_fmt, search_360_ch, terminaltype, cityname, root_cateid, cateid_l2, page_type, s360_search_kwd, search_360_clientid, _ad_type);
+	}
+}
+
+function search_buzu_select(buzu_time, first_choice, second_choice, buzu_num){
+	if (first_choice && buzu_time <=2){
+		buzu_time = buzu_time +1;
+		if (first_choice && buzu_time == 1){
+			search_js_choice(first_choice, buzu_num);
+		}else if(first_choice && second_choice && buzu_time == 2){
+			search_js_choice(second_choice, buzu_num);
+		}
+	}	
+	return buzu_time
+}
+
+function sogou_search_js(total_num, adname_sogouafs, terminaltype, cityname, root_cateid, cateid_l2, page_type, sogou_search_kwd){
+	document.write('<scri'+'pt type="text/javascript" src="//afsxml.58.com/xmladsvr/sogouad/?terminal=' + terminaltype + '&cityid=' + cityname + '&cate2=' + cateid_l2 + '&pagetype=' + page_type + '&rcateid=' + root_cateid + '&wd=' + sogou_search_kwd + '&aid=' + adname_sogouafs + '&r=' + Math.random() + '"></scri'+'pt>');	
+}
+
+function s360_search_js(total_num, search_360_fmt, search_360_ch, terminaltype, cityname, root_cateid, cateid_l2, page_type, baidu_search_kwd, search_360_clientid, _ad_type){
+	var _total_search_ad_num = total_num ;
+	src = "//afsxml.58.com/xmladsvr/360ad/?terminal=" + terminaltype + "&cityid=" + cityname + "&cate2=" + cateid_l2 + "&ls=" + search_360_clientid + "&n=" + _total_search_ad_num + "&q=" + baidu_search_kwd + "&fmt=" + search_360_fmt + "&ch=" + search_360_ch + "&union=s360&pagetype=" + page_type + "&cate=" + root_cateid + "&adtype=" +  _ad_type.search_360ad.id + "&r=" + Math.random();
+	addscript(src);
+}
+
+function google_search_js(total_num, container, kwd, channel, width, linenum){
+	document.write('<script async="async" src="//afs.googlesyndication.com/adsense/search/ads.js"></scr' + 'ipt>');
+	(function(g,o){g[o]=g[o]||function(){(g[o]['q']=g[o]['q']||[]).push(arguments)},g[o]['t']=1*new Date})(window,'_googCsa');
+	var pageOptions = { 
+		  'pubId': '58-main',
+		  'query': kwd,
+		  'channel':  channel,
+		  'adPage': 1,
+		  'hl': 'zh_CN',
+		  'siteLinks': false,
+		  'callouts': false,
+		  'location': false,
+		  'reviewExtension': false,
+		  'linkTarget': '_blank',
+		  'numRepeated': 2,
+		  'adsResponseCallback': search_gg_afs_request_done
+	};
+
+	var adblock1 = { 
+		  'container': container,
+		  'width': width,
+		  'number': total_num,
+		  'lines': linenum,
+		  'titleBold': false,
+		  'rightHandAttribution': true,
+		  'domainLinkAboveDescription': false,
+		  'fontSizeTitle': 13,
+		  'colorText': '585858',
+		  "colorTitleLink": "1155CC",
+		  "colorDomainLink": "178200"
+	};
+
+	_googCsa('ads', pageOptions, adblock1);
+}
+
+function setCookie(name,value)
+{
+	var Days = 30;
+	var exp  = new Date();   
+	var exp_create= exp;
+	exp.setTime(exp.getTime() + Days*24*60*60*1000);
+	document.cookie = name + "="+ escape (value) + ";expires=" + exp.toGMTString();
+	document.cookie = 'time_create=' + exp_create.getTime() + ";expires=" + exp.toGMTString();
+}
+
+function getCookie(name)
+{
+	var cookie_str = document.cookie;
+	var cookie_set = cookie_str.split(';');
+	var cookie_item,cookie_name,cookie_value;
+	for (i=0;i<cookie_set.length;i++){
+		cookie_item = cookie_set[i];
+		cookie_name= trim(cookie_item).split('=')[0];
+		cookie_value = trim(cookie_item).split('=')[1];
+		if (cookie_name == name){
+			return cookie_value;
+		}
+	}
+	return null;
+}
+
+function IslowIE(ua){
+        if(/MSIE ([^;]+)/.test(ua)){               //IE6、IE7
+                //ver=RegExp["$1"];
+                //ie=parseFloat(ver);
+                //if (ie <= 7.0){
+                //        return true;
+                //}
+		return true;
+        }
+        return false;
+}
+
+function isLowSys(ua){
+	var system={    
+		win:false,
+		mac:false,
+		x11:false
+	};
+	var lowSys = false;
+	var p=navigator.platform;                        
+	system.win=p.indexOf("Win")==0;
+	system.mac=p.indexOf("Mac")==0;
+	system.x11=(p.indexOf("X11")==0)||(p.indexOf("Linux")==0);
+	if(system.win){
+		if(/Win(?:dows )?([^do]{2})\s?(\d+\.\d+)?/.test(ua)){
+			 if(RegExp["$1"]=="NT"){
+			    system.win = ({
+			       "5.0" : "2000",
+			       "5.1" : "XP",
+			       "6.0" : "Vista",
+			       "6.1" : "7",
+			       "6.2" : "8",
+			       "6.3" : "8.1",
+			       "10" : "10"
+			    })[RegExp["$2"]] || "NT";
+			    sysNum = parseFloat([RegExp["$2"]]);
+			    lowSys = (sysNum < 6.0 ? true : false);
+			 }else if(RegExp["$1"]=="9x"){
+			    system.win="ME";
+			    lowSys = true;
+			 }else{
+			    system.win=RegExp["$1"];
+			    lowSys = true;
+			 }
+		}
+	}
+	return lowSys;
+}
+
+document.domain="58.com";
+var terminaltype = "pc";
+var cityname = "fy";
+var root_cateid = "1";
+var cateid_l2 = "8";
+var page_type = "finalpage";
+var sogou_search_kwd = "%E6%90%AC%E5%AE%B6";
+var s360_search_kwd = "%E6%90%AC%E5%AE%B6";
+var gg_search_kwd = "租房";
+var search_360_fmt = "xml";
+var search_360_ch = "48,198";
+var search_360_clientid = "sm2412674";
+
+var first_choice = "";
+var second_choice = "";
+var buzu_time = 0;
+var adname_sogouafs = "fangwu_58"; 
+var gg_search_container = "final_bottom_ggad";
+var google_afs_channel =  "lvyouxiuxian_final";
+
+var setcookie_flag = false;
+var encode_cookie = 'e87rZGDIjJWBLlhfKkMOAg==';
+var ua=navigator.userAgent;
+
+var lr = "left";
+
+if(setcookie_flag){
+    var date = new Date();
+    date.setTime(date.getTime() + 730 * 24 * 3600 * 1000);
+    document.cookie = "id58=" + encode_cookie + ";expires="+ date.toGMTString() +";path=/;domain=.58.com";
+
+}
+
+//MOD_FLAG: 如果在智能里面没有切分广告位，则在这里切分
+var is_slot_created = false;
+if(!is_slot_created) {
+	if (false){
+		if(document.getElementById("googlead_list")) {
+			document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_zhuti' ></div>";
+			document.getElementById("googlead_list").innerHTML += "<div id='final_left_bottom_zhinengxiafang' ></div>";
+			document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_zhuti_2' ></div>";
+			document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_oldoutside' ></div>";
+			document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_ggad' ></div>";
+			document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_baiducpro' ></div>";
+			document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_tonglan' ></div>";
+			document.getElementById("googlead_list").innerHTML += "<div id='yima_final_bottom_tonglan' ></div>";
+			document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_tuijian' ></div>";
+		}
+		if(document.getElementById("sideAD")) {
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_tanx' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_yigao' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_bottom_1' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_bottom_zhike' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_zhike_hezhongxingkong' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_baiducpro_2' ></div>";
+		}
+		if(document.getElementById("sideAD")) {
+			document.getElementById("sideAD").innerHTML += "<div id='direct_ad_right' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_adx_test' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_baiducpro' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_oldoutside' ></div>";
+			document.getElementById("sideAD").innerHTML += "<div id='final_right_gg_adx' ></div>";
+		}
+	}else{
+		if(document.getElementById("googlead_list")) {
+if(document.getElementById("final_bottom_oldoutside") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_oldoutside' ></div>";}
+if(document.getElementById("final_left_1") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_left_1' ></div>";}
+if(document.getElementById("final_left_bottom_zhinengxiafang") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_left_bottom_zhinengxiafang' ></div>";}
+if(document.getElementById("final_bottom_ggad") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_ggad' ></div>";}
+if(document.getElementById("final_bottom_baiducpro") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_bottom_baiducpro' ></div>";}
+if(document.getElementById("final_left_2") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_left_2' ></div>";}
+if(document.getElementById("final_left_3") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_left_3' ></div>";}
+if(document.getElementById("final_left_4") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_left_4' ></div>";}
+if(document.getElementById("final_left_5") == null){document.getElementById("googlead_list").innerHTML += "<div id='final_left_5' ></div>";}
+}
+	}
+}
+//MOD_FLAG_END.
+
+var side_con_id_div = document.getElementById('sideAD');
+if(side_con_id_div && navigator.userAgent.indexOf("MSIE 6.0") > 0){
+	 $('#sideAD').attr('style','padding:8px');
+}
+
+var GGAD58_Utils = {
+	ajaxwrite : function(log){
+		var img = new Image();
+		img.src = document.location.protocol + "//track.58.com/empty.js.gif?site_name=58&" + log + "&rand=" + Math.random();
+	},
+	direction_clks : function(log){
+		var img = new Image();
+		img.src = document.location.protocol + "//track.58.com/adsys/clks?systype=direction&" + log + "&mza=1s87YHgMErhNyuC2215cc9c829dd332d5bbf58d277fe5a2b1bcde108740c0837816ca2205dccf816&rand=" + Math.random();
+	},
+	template_render : function(template, obj){
+		var regex = /{{(.*?)}}/g;
+		return template.replace(regex, function (match, subMatch, index, s) {
+			return obj[subMatch] || "";
+		});
+	}, 
+	substringEx: function(source, length){
+		if(source.length * 2 <= length) return source;
+		var index = 0;
+		for(var i = 0, leni = source.length; i < leni; i++){
+			if(source.charCodeAt(i) > 128) index += 2;
+			else index++;
+			if (index == length) return source.substring(0, i + 1);
+			else if (index == length + 1) return source.substring(0, i);
+		}
+		return source;
+	},
+	getLengthEx: function(source){
+		var index = 0;
+		for (var i = 0, leni = source.length; i < leni; i++) {
+			if(source.charCodeAt(i) > 128) index += 2;
+			else index++;
+		}
+		return index;
+	},
+	encode_html : function(str){
+		var a = [];
+		for (var i = 0; i < str.length;){
+			a[i] = str.charCodeAt(i++);
+		}
+		return "&#" + a.join(";&#") + ";";
+	},
+	decode_html : function(str){
+		return str.replace(/&#(x)?([^&]{1,5});?/g,
+			function(a, b, c){
+				return String.fromCharCode(parseInt(c, b ? 16 : 10));
+			}
+		);
+	}
+};
+var ajaxwrite = function(log){var img = new Image();img.src = document.location.protocol + "//track.58.com/empty.js.gif?site_name=58&" + log + "&rand=" + Math.random();}
+
+var _disp_58ad_str = '';
+var _disp_log_object = {google_afc : -1, google_afs : -1, baidu_cpro_left : -1, baidu_cpro_right : -1, baidu_afs : -1, clientHeight:0, 
+		right_zhineng_y_list:'', btm_zhineng_y_list:'', left_zhineng_y_list:'', google_afs_request:-1, google_afc_request:-1,
+		google_afs_channel:'',google_afc_channel:''};
+var final_ggad='final_right_ggad';
+var final_ggad_2='final_right_ggad_2';
+
+var _used_google_kwd = '租房';
+var _used_baidu_kwd = '%E7%A7%9F%E6%88%BF';
+var bind_adclick = function(myviewid){
+
+	try{
+		$("#" + myviewid).find("a").each(function(){
+			var adurl = $(this).attr('href').split("?")[0];
+			$(this).bind('click', function(){ajaxwrite("adclicked=1&from=" + encodeURIComponent(adurl) + "&googlekwd=" 
+				+ encodeURIComponent(_used_google_kwd) + "&baidukwd=" + _used_google_kwd + "&cityid=2325&cateid=8" + "&page=post" + "&container=" + myviewid+"&page_refer=https%3A//fy.58.com/"
+				+"&baidu_afs_channel="+_disp_log_object.baidu_afs_channel + "&baidu_afs_channel_id="+_disp_log_object.baidu_afs_channel_id
+				+"&google_afs_channel="+_disp_log_object.google_afs_channel + "&sogou_afs_channel="+_disp_log_object.sogou_afs_channel
+				+"&google_afc_channel="+_disp_log_object.google_afc_channel + "&adtype_flag=" + adtype_flag +"&left_top_click=0&left_btm_click=1&right_click=0&rightbtm_click=0");});
+		});
+	}catch(e){}
+}
+
+var disp_log_func_call = function(){
+	var client_height = $(window).height();
+	var client_width = $(window).width();
+    client_height = client_height + ',' + client_width;
+	_disp_log_object.clientHeight = client_height;
+	var right_div=document.getElementById('direct_ad_right');
+    if(right_div){
+        var top = $("#direct_ad_right").offset().top;
+        var btm = $("#direct_ad_right").height();
+        _disp_log_object.right_zhineng_y_list = top + ',' + btm;
+    }
+    var btm_div = document.getElementById('direct_ad_bottom');
+    if(btm_div){
+        var top = $('#direct_ad_bottom').offset().top;
+        var btm = $("#direct_ad_bottom").height();
+        _disp_log_object.btm_zhineng_y_list = top + ',' + btm;
+    }
+	bind_adclick(final_ggad);
+	bind_adclick(final_ggad_2);
+	bind_adclick(left_ad_id);
+	bind_adclick('final_bottom_wenzi');
+	GGAD58_Utils.ajaxwrite("addisplog=1&page=post&cityid=2325&cateid=8"
+		+ "&google_afs=" + _disp_log_object.google_afs + "&google_afc=" + _disp_log_object.google_afc + "&baidu_cpro_left="
+		+ _disp_log_object.baidu_cpro_left + "&baidu_cpro_right=" + _disp_log_object.baidu_cpro_right + "&baidu_afs="
+		+ _disp_log_object.baidu_afs + "&ad58disp=" + _disp_58ad_str + '&clientHeight=' + _disp_log_object.clientHeight + '&left_zhineng_y_list='+ _disp_log_object.left_zhineng_y_list
+		+ "&googlekwd=" + encodeURIComponent(_used_google_kwd) + "&baidukwd=" + _used_baidu_kwd + "&cityid=2325&cateid=8"
+        + '&right_zhineng_y_list='+ _disp_log_object.right_zhineng_y_list + '&btm_zhineng_y_list=' + _disp_log_object.btm_zhineng_y_list
+		+ '&client_zntag=' + ''
+		+ '&google_afs_request=' + _disp_log_object.google_afs_request + '&google_afc_request=' + _disp_log_object.google_afc_request
+		+ '&google_afs_channel=' + _disp_log_object.google_afs_channel + '&google_afc_channel=' + _disp_log_object.google_afc_channel
+		+ "&page_refer=https%3A//fy.58.com/");
+}
+var baiducpro_cproid_2 = 'u1313640';
+	
+var left_adcount = 5;
+var right_adcount = 0;
+
+//MOD_FLAG: 最终页切分广告位，不需要切分了，但是配置里面需要这些对应数据
+var left_dir_id = 'final_bottom_oldoutside';
+var right_dir_id = 'final_right_oldoutside';
+var left_ad_id = 'final_bottom_ggad';
+var right_ad_id = 'final_right_ggad';
+var right_ad_id_2 = 'final_right_ggad_2';
+var left_cpro_id = 'final_bottom_baiducpro';
+var left_zhuti_id = 'final_bottom_zhuti';
+var right_cpro_id = 'final_right_baiducpro';
+
+var baidu_afs_flag = false;
+var is_zhaopin_flag = false;
+var _left_num = left_adcount;
+var _right_num = right_adcount;
+var need_total_num = _left_num + _right_num;
+var left_baidu_asp_num = 5;
+
+var i =0;
+var  union_adnum = 0;
+var union_adinfo = "";
+var zhike_adnum = 0;
+var zhike_adinfo = "";
+var no_zhike_adnum = 0;
+var no_zhike_adinfo = "";
+var container2autoad = {"final_left_1": "<div id=\"cpro_u3394129\" baidujs_id=\"u3394129\" style=\"padding-bottom: 15px;\"></div>", "final_left_3": "<div id=\"cpro_u3398268\" baidujs_id=\"u3398268\" style=\"padding-bottom: 15px;\"></div>", "final_left_2": "<div id=\"cpro_u3398266\" baidujs_id=\"u3398266\" style=\"padding-bottom: 15px;\"></div>", "final_left_bottom_zhinengxiafang": "<div id=\"cpro_u3398262\" baidujs_id=\"u3398262\" style=\"padding-bottom: 15px;\"></div>"};
+//console.log("rand_list:" + [0, 0, 90, 100, 100]);
+//console.log("random:" + 39);
+//console.log('ad_choice:' + '360');
+
+
+var side_ad_num = 0;
+var right_divcpro = {"final_right_adx_test":0,"final_right_baiducpro":1,"final_right_soso":2,"final_right_sougowangmeng":3,"final_right_baiducpro_img":4,"final_right_tanx":5,"final_right_baiducpro_img_2":6,"final_right_oldoutside":7,"final_right_yigao":8,"final_right_58promotions":9,"final_right_bottom_1":10,"final_right_bottom_zhike":11,"final_right_zhike_hezhongxingkong":12,"final_right_bottom":13,"final_right_btm_jxedt":14,"final_right_baiducpro_2":15,"final_right_1":16,"final_right_oldoutside":17,"final_right_2":18,"final_right_3":19,"final_right_4":20,"final_right_5":21,"final_right_6":22,"final_right_7":23,"final_right_8":24,"final_right_9":25,"final_right_10":26,"final_right_gg_adx":27,"final_right_yigao":28};
+if(document.getElementById('links') || $("#footer")[0] || $(".footer")[0] || $("#commonFooter")[0]){
+	var postend_offset = 0;
+	if(document.getElementById('links')){
+		postend_offset = document.getElementById('links').offsetTop;
+	}else if($("#footer").offset()){
+		 postend_offset = $("#footer").offset().top;
+	}else if($(".footer").offset()){
+		 postend_offset = $(".footer").offset().top;
+	}else if($("#commonFooter").offset()){
+		postend_offset = $("#commonFooter").offset().top;
+	}
+	var lm_up_height = 0;
+	if(document.getElementById("direct_ad_right") &&  document.getElementById("sideAD")){
+		lm_up_height = $("#direct_ad_right").outerHeight() + $("#sideAD").offset().top;
+	}
+	if("1" == "4"){
+		if(document.getElementById("ssppre_1000026") &&  document.getElementById("sideAD")){
+			lm_up_height = $("#ssppre_1000026").outerHeight() + $("#sideAD").offset().top
+		}
+	}
+	others_view_height = 290;
+	var right_height_left = postend_offset - lm_up_height - others_view_height;
+	if(right_height_left > 0) {
+		var max_side_ad_num = Math.floor(right_height_left / 200);
+	//	var side_ad_num= Math.min(side_ad_num,max_side_ad_num);
+		side_ad_num = max_side_ad_num;
+	}else{
+		side_ad_num = 0;
+	}
+}
+var sideAD_num = 1;
+
+for(var container_id in container2autoad) {
+	if(sideAD_num > side_ad_num){
+		if(container_id in right_divcpro){
+			continue;
+		}
+	}
+	if(container_id in right_divcpro){
+		sideAD_num += 1;
+	}
+	if(document.getElementById(container_id)) {
+		//document.getElementById(container_id).innerHTML = container2autoad[container_id];
+		var new_div = document.createElement('div');
+		new_div.innerHTML = container2autoad[container_id];
+		document.getElementById(container_id).appendChild(new_div);
+		var divList = $('#'+ container_id +' div div');
+		var divListLength = divList.length;
+		for (i=0;i<divListLength;i++){
+			var baidujs_id = divList[i].getAttribute('baidujs_id') || "default_id";
+			var nativedad_str = divList[i].getAttribute('nativedad') || "default_nativead";
+			var search_recm_str = divList[i].getAttribute('search_recm') || "default_search";
+			var search_recm2_str = divList[i].getAttribute('search_recm2') || "default_search";
+			var data_ad_client = divList[i].getAttribute("data-ad-client") || "default_afc";
+			if(search_recm2_str!="default_search"){
+				ndiv = document.createElement('div');
+				ndiv.innerHTML = search_recm2_str;
+				document.getElementById('cpro_' + baidujs_id).appendChild(ndiv);
+			}else if(search_recm_str!="default_search"){
+				ndiv = document.createElement('div');
+				ndiv.innerHTML = search_recm_str;
+				document.getElementById(container_id).appendChild(ndiv);
+			}else if(baidujs_id!="default_id" && nativedad_str!="default_nativead"){
+				(window.cproArray = window.cproArray || []).push({id: baidujs_id});
+				document.write(nativedad_str);
+			}else if(baidujs_id!="default_id"){
+				(window.cproArray = window.cproArray || []).push({id:baidujs_id});
+			}else if(data_ad_client != "default_afc"){
+				var style = divList[i].getAttribute('sty');
+                        	var data_ad_slot = divList[i].getAttribute('data-ad-slot');
+				var ins = document.createElement('ins');
+				ins.className = 'adsbygoogle';
+				ins.setAttribute("style",style);
+				ins.setAttribute("data-ad-client",data_ad_client);
+				ins.setAttribute("data-ad-slot",data_ad_slot);
+				divList[i].appendChild(ins);
+				(adsbygoogle = window.adsbygoogle || []).push({});
+			}
+		}
+		if($('#' + container_id + ' div iframe').attr('union') || $('#' + container_id + ' iframe').attr('union')){
+			ad_union = $('#' + container_id + ' div iframe').attr('union') || $('#' + container_id + ' iframe').attr('union')|| "";
+			ad_cproid = $('#' + container_id + ' div iframe').attr('cproid') || $('#' + container_id + ' iframe').attr('cproid')|| "";
+			if (ad_union && ad_cproid){
+				union_adlog = "{'union':'" + ad_union + "','cproid':'" + ad_cproid + "'},"; 
+				union_adinfo += union_adlog;
+				union_adnum +=1;
+			}
+		}
+
+        	if($('#' + container_id + ' div div').attr('uniontype') && $('#' + container_id + ' div div').attr('adname')){
+                	var uniontype = $('#' + container_id + ' div div').attr('uniontype') || "";
+                	var adname = $('#' + container_id + ' div div').attr('adname') || "";
+                	if ((uniontype == "wangyi" || uniontype == "360" || uniontype == "sogou" || uniontype == "taobao" || uniontype == "google" ||      uniontype == "jd" || uniontype == "gdt")  && adname){
+                    		var adlog = "{'union':'"+uniontype+"','adname':'" + adname + "','container':'" + container_id + "','count':1},";
+                    		no_zhike_adinfo += adlog;
+                    		no_zhike_adnum +=1;
+                	}
+        	}
+		if($('#'+ container_id +' a').attr('wangmengadname')){
+			var unionname = $('#'+ container_id +' a').attr('unionname');
+			var adname = $('#'+ container_id +' a').attr('wangmengadname');      
+			var adlog = "{'union':'" + unionname + "','adname':'" + adname + "','container':'" + container_id + "','count':1},";                
+			zhike_adinfo += adlog;       
+			zhike_adnum +=1;
+		}
+		if($('#'+ container_id +' div div').attr('wangmengadname')){
+			unionname = $('#'+ container_id +' div div').attr('unionname') || "zhike";
+			adname = $('#'+ container_id +' div div').attr('wangmengadname') || "";      
+			adlog = "{'union':'" + unionname + "','adname':'" + adname + "','container':'" + container_id + "','count':1},";                
+			zhike_adinfo += adlog;       
+			zhike_adnum +=1;
+		} else if($('#' + container_id + ' div div').attr('baidujs_id')){
+                	var baidu_cproid = $('#' + container_id + ' div div').attr('baidujs_id') || "";
+                	if (baidu_cproid){
+                    		var baidu_adlog = "{'union':'baidu','adname':'" + baidu_cproid + "','container':'" + container_id + "','count':1},";
+                    		no_zhike_adinfo += baidu_adlog;
+                    		no_zhike_adnum +=1;
+                	}
+            	}
+	}
+}
+
+
+if("false" == "true"){
+	if(document.getElementById('final_left_bottom_zhinengxiafang')){
+		document.getElementById('final_left_bottom_zhinengxiafang').innerHTML = '<div id="cpro_u2637054" baidujs_id="u2637054" style="padding-bottom: 10px;"></div>';
+		(window.cproArray = window.cproArray || []).push({id: "u2637054"});
+	}
+	if(document.getElementById('final_right_zhike_hezhongxingkong')){
+		document.getElementById('final_right_zhike_hezhongxingkong').innerHTML = '<div id="cpro_u2637031" baidujs_id="u2637031" style="padding-bottom: 10px;"></div>';
+		(window.cproArray = window.cproArray || []).push({id: "u2637031"});
+	}else{
+		if(document.getElementById('final_right_6')){
+			document.getElementById('final_right_6').innerHTML = '<div id="cpro_u2637031" baidujs_id="u2637031" style="padding-bottom: 10px;"></div>';
+			(window.cproArray = window.cproArray || []).push({id: "u2637031"});
+		}
+	}
+}
+
+//google afc js interface
+document.write('<scri' + 'pt src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" type="text/javascript"></scri' + 'pt>')
+document.write('<scri' + 'pt src="//cpro.baidustatic.com/cpro/ui/c.js" type="text/javascript"></script>');
+document.write("<scri" + "pt>if (typeof BAIDU_SS_HHRUN!='function'){with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='//su.bdimg.com/static/dspui/js/ls.js?v='+~(-new Date()/5600e5)]}else {BAIDU_SS_HHRUN()}</scri" + "pt>");
+document.write('<script src="//su.bdimg.com/static/dspui/js/ue.js"><scr' + 'ipt>');
+
+if('false'=='true'){
+	var img1 = new Image();
+
+	img1.src = "//track.58.com/union_empty.js.gif?terminaltype=pc&pagetype=finalpage&cityname=fy&catename=zufang";
+}
+
+var ispvlogposted = false;
+var adpvstatistic = function(){
+	if(!ispvlogposted){
+		ispvlogposted = true;
+		GGAD58_Utils.ajaxwrite("addisplog=1&page=post&cityid=2325&cateid=8");
+	}
+}
+
+var left_ggad_outertemplate = '<div style="padding-left: 20px;">{{items}}</div>';
+var left_ggad_itemtemplate = '<p><span class="ad1"><a href="{{url}}" target="_blank">{{title}}</a></span><span class="ad2">' + 
+	'<a href="{{url}}" target="_blank">{{show_url}}</a></span><span class="ad3">{{content}}</span></p>';
+	left_bdad_itemtemplate = '<p><span style="font-weight:normal;font-size:14px;line-height:25px;"><a href="{{url}}" target="_blank">{{title}}</a></span><span style="font-weight:normal;font-size:14px;line-height:25px;">' + 
+	'<a href="{{url}}" target="_blank">{{show_url}}</a></span><span style="font-weight:normal;font-size:14px;line-height:25px;"><a href="{{url}}" target="_blank" style="c' + 
+	'olor:#585858;text-decoration:none;">{{content}}</a></span></p>';
+
+	
+var $cproIdRandom = parseInt(Math.random() * 10000);
+function cproRenderer(datas) {
+	var cpro_template = '<div style="display: inline; width:726px; height:28px; overflow:hidden;float:left;line-height:28px;">'
+		+ '<span style="width:200px;padding-right:5px;text-overflow: ellipsis; white-space: nowrap; overflow: hidden;'
+		+ '"><a href="{{url_all}}"  target="_blank"  style="color:#1155CC">{{title_short}}</a></span>'
+		+ '<span style="width:130px;padding-right:5px;text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">' 
+		+ '<a href="{{url_all}}"  target="_blank" style="color:#585858">{{url_short}}</a></span>'
+		+ '<span style="width:386px;overflow: hidden; margin-top:3px;"><a href="{{url_all}}"  target="_blank"  style="' 
+		+ 'color:#585858;text-decoration:none;font-size:12px">{{desc_short}}</a></span></div>';
+	var title_length = 22;
+	var content_length = 40;
+	if('1' == '9225'){
+		title_length = 40;
+		content_length = 80;
+		cpro_template = '<div style="display: inline; width:960px; height:28px; overflow:hidden;float:left;line-height:28px;">'
+			+ '<span style="width:300px;padding-right:5px;text-overflow: ellipsis; white-space: nowrap; overflow: hidden;'
+			+ '"><a href="{{url_all}}"  target="_blank"  style="color:#1155CC">{{title_short}}</a></span>'
+			+ '<span style="width:130px;padding-right:5px;text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">' 
+			+ '<a href="{{url_all}}"  target="_blank" style="color:#585858">{{url_short}}</a></span>'
+			+ '<span style="width:526px;overflow: hidden; margin-top:3px;"><a href="{{url_all}}"  target="_blank"  style="' 
+			+ 'color:#585858;text-decoration:none;font-size:12px">{{desc_short}}</a></span></div>';
+	}
+	if (typeof datas == "undefined") return;
+	var length = datas.length;
+	if (length <= 0) return;
+	var str = '';
+	var i, data, cpro_item, result = new Array();
+	for (i = 0; i < length; i++) {
+		data = datas[i];
+		var cpro_item = {
+			title_all: data.tit,
+			title_short: GGAD58_Utils.substringEx(data.tit, title_length),
+			desc_all: data.desc,
+			desc_short: GGAD58_Utils.substringEx(data.desc, content_length) + "...",
+			url_all: data.curl,
+			url_short: data.surl.split("/")[0]
+		};
+		result.push(GGAD58_Utils.template_render(cpro_template, cpro_item));
+	}
+	document.getElementById('baiduCpro' + $cproIdRandom).innerHTML = result.join("");
+	$("#" + (right_cpro_id + '' + $cproIdRandom)).css({'display' : 'block'});
+	return;
+}
+
+var arrBaiduCproConfig = new Array();
+arrBaiduCproConfig['n'] = '14026035_67_cpr';
+arrBaiduCproConfig['template'] = 'baiduDEFINE';
+arrBaiduCproConfig['wn'] = 1;
+arrBaiduCproConfig['hn'] = 5;
+arrBaiduCproConfig['tm'] = 20;
+arrBaiduCproConfig['cm'] = 30;
+arrBaiduCproConfig['um'] = 20;
+arrBaiduCproConfig['define'] = 'cproRenderer';
+arrBaiduCproConfig['charset'] = 'utf-8';
+arrBaiduCproConfig['rad'] = 0;
+arrBaiduCproConfig['uap'] = 0;
+arrBaiduCproConfig['cad'] = 0;
+arrBaiduCproConfig['nfr'] = 1;
+arrBaiduCproConfig['bu'] = 0;
+arrBaiduCproConfig['channel'] = "0";
+
+//baidu afs style
+var outer_template_baidu = '<div style="padding-bottom:0px;margin-left:20px;line-height:28px;padding-top:10px">{{items}}</div>';
+var item_template_baidu = '<p style = "font-family:宋体;font-size:14px;font-color:blue;text-align:left;"><span style= "border-style:none"><a style= "text-decoration:underline;text-align:left;color:#1155CC" href="{{url}}" target="_blank">{{title}}</a></span><span style= "border-style:none;font-family:宋体;font-size:14px">'+ '<a style= "text-decoration:underline;text-align:left;color:#1155CC" href="{{url}}" target="_blank">{{show_url}}</a></span><span style= "border-style:none"><a style= "border-style:none;text-align:left;color:#585858" href="{{url}}" target="_blank">{{content}}</a></span></p>';
+
+//sogou afs style
+var outer_template_sogou = '<div style="padding-bottom:0px;margin-left:5px;line-height:28px">{{agenturl}}{{agentname}}{{items}}</div>';
+var item_template_sogou = '<p style = "font-family:宋体;font-size:14px;font-color:#1155CC;text-align:left;"><span style= "border-style:none"><a style= "text-align:left;color:#1155CC" href="{{url}}" target="_blank">{{title}}</a></span><span style= "border-style:none;font-family:宋体;font-size:12px;margin:0px 5px 0px 10px;">'+ '<a style= "font-size:12px;text-align:left;color:#178200" href="{{url}}" target="_blank">{{show_url}}</a></span><span style= "border-style:none"><a style= "border-style:none;text-align:left;color:#585858;font-size:12px" href="{{url}}" target="_blank">{{content}}</a></span></p>';
+
+//buzu afs style
+var title_length = 22;
+var content_length = 40;
+var $cproHolder = '<div id="' + (right_cpro_id + '' + $cproIdRandom) + '" style="font-size:14px;margin:0px auto; padding:0px; width:730px;overflow:hidden;float:left;display:none;">'+'<div id="baiduCpro' + $cproIdRandom + '" class="baidu_cproad" style="font-size:14px;overflow:hidden;text-align:left;margin: 0px auto auto 20px; padding: 0px;"></div>'+'</div><div style="clear: both;"></div>';
+if("false"=="true"){
+	$cproHolder = '<div id="' + (right_cpro_id + '' + $cproIdRandom) + '" style="font-size:14px;margin:0px auto; padding:0px; width:730px;overflow:hidden;float:left;display:none;">'+'<div id="baiduCpro' + $cproIdRandom + '" class="baidu_cproad" style="font-size:14px;overflow:hidden;text-align:left;margin: 0px auto auto 20px; padding: 0px 0px 5px 0px;"></div>'+'</div><div style="clear: both;"></div>';
+}
+
+
+if(document.getElementById(left_cpro_id) && need_total_num > 0 && lr != "right"){
+	if("360" == "sogou"){
+		sogou_search_js(need_total_num, adname_sogouafs, terminaltype, cityname, root_cateid, cateid_l2, page_type, sogou_search_kwd);
+	}else if ("360" == "google"){
+		if(IslowIE(ua) || isLowSys(ua))
+			sogou_search_js(need_total_num, adname_sogouafs, terminaltype, cityname, root_cateid, cateid_l2, page_type, sogou_search_kwd);
+		else
+			google_search_js(need_total_num, gg_search_container, gg_search_kwd, google_afs_channel, "728px", 2);
+	}else if("360" == "360"){
+		s360_search_js(need_total_num, search_360_fmt, search_360_ch, terminaltype, cityname, root_cateid, cateid_l2, page_type, s360_search_kwd, search_360_clientid, _ad_type);
+	}else if ("360" == "baidu"){
+		//var _total_search_ad_num = 5;
+		//baidu_js_client_id = "14026035_56_pg";
+		//document.write('<scri'+'pt type="text/javascript" src="//statictrack.58.com/pc_baidu_search_ad_js.js?r=' + Math.random() + '"></scri'+'pt>');
+	}
+}
+
+function sogou_afs_request_done(retcode, pingback, sogou_ads){
+	var ret_count =0;
+	var title_len_left = 40;
+	var content_len_left = 40;
+	var sogou_ads_num = sogou_ads.length;
+	//alert("sogou_ads_num: "+sogou_ads_num);
+	ret_count, need_total_num = ad_request_done_callback(sogou_ads, _ad_type.sogou, outer_template_sogou, item_template_sogou, '','',_left_num,0,title_len_left,content_len_left,0,0);
+	if(need_total_num > 0)
+		buzu_time = search_buzu_select(buzu_time, first_choice, second_choice, need_total_num);
+	disp_log_func_call();
+}
+
+function search_360_afs_request_done(search_360_ads){
+	var ret_count = 0;
+	var title_len_left = 40;
+	var content_len_left = 40;
+	var s360_ads_num = search_360_ads.length;
+	//alert("360_ads_num: "+s360_ads_num);
+	ret_count, need_total_num = ad_request_done_callback(search_360_ads, _ad_type.search_360ad, outer_template_sogou, item_template_sogou, '','',left_adcount, 0, title_len_left,content_len_left,0,0);
+	if(need_total_num  > 0)
+		buzu_time = search_buzu_select(buzu_time, first_choice, second_choice, need_total_num);
+	disp_log_func_call();
+}
+
+
+function search_gg_afs_request_done(numAdsMap) {
+	var adsnum = 0;
+	for (var name in numAdsMap) {
+	//	console.log(name + ' has ' + numAdsMap[name] + ' ads');
+	//	alert(name + ' has ' + numAdsMap[name] + ' ggads');
+		adsnum = adsnum + numAdsMap[name];
+	}
+	need_total_num = need_total_num - adsnum;
+	if(need_total_num  > 0 && adsnum == 0)
+		buzu_time = search_buzu_select(buzu_time, first_choice, second_choice, need_total_num);
+	$('#'+left_ad_id).css({"width": "728px", "position": "relative", "border": "1px solid rgb(210, 210, 210)", "margin":"0px 0px 10px 96px"});
+}
+
+		
+
+var ad_request_done_callback = function(ads, adtype, left_outer_template, left_item_template, right_outer_template, right_item_template, left_ad_num, right_ad_num, left_title_len, left_content_len, right_title_len, right_content_len){
+	var ret_count = 0;
+	if(left_ad_num <= 0 && right_ad_num <= 0) return ret_count;
+	var total_ad_num = left_ad_num + right_ad_num;
+	var ads_num = ads.length;
+	var left_ad_list = [];
+	var right_ad_list = [];
+
+	var reg = new RegExp("<b>|</b>", "gmi");
+	for(var i = 0; i < ads_num; i++){
+		if(i >= total_ad_num)
+			break;
+		var _mytitle;
+		var _mycontent;
+		var _myurl;
+		var _myshowurl;
+		if(adtype.id == '2'){
+			ads[i].tit = ads[i].tit.replace(reg, '');
+			ads[i].desc = ads[i].desc.replace(reg, '');
+			ads[i].curl = ads[i].curl.replace(reg, '');
+			ads[i].surl = ads[i].surl.replace(reg, '');
+			_mytitle = GGAD58_Utils.substringEx(ads[i].tit, left_title_len);
+   	        _mycontent = GGAD58_Utils.substringEx(ads[i].desc, left_content_len);
+   	        _myshowurl = GGAD58_Utils.substringEx(ads[i].surl, 25);
+			_myurl = ads[i].curl;
+		}else{
+			ads[i].line1 = ads[i].line1.replace(reg, '');
+			ads[i].line2 = ads[i].line2.replace(reg, '');
+			var title_len = i < left_ad_num ? left_title_len : right_title_len;
+			var content_len = i < left_ad_num ? left_content_len : right_content_len;
+			_mytitle = GGAD58_Utils.substringEx(ads[i].line1, title_len);
+			_mycontent = GGAD58_Utils.substringEx(ads[i].line2, content_len) + '...';
+			_myurl = ads[i].url;
+			if(adtype.id == '5')
+				_myshowurl = ads[i].visible_url.split('/')[2];
+			else if(adtype.id == '3')
+				_myshowurl = ads[i].visible_url.split('/')[0];
+		}
+		var aditem = {
+			title : _mytitle,
+			url : _myurl,
+			show_url : _myshowurl,
+			content : _mycontent
+		};
+		if(i < left_ad_num){
+			left_ad_list.push(GGAD58_Utils.template_render(left_item_template, aditem));
+		}else if(i < total_ad_num){
+			right_ad_list.push(GGAD58_Utils.template_render(right_item_template, aditem));
+		}
+	}
+	ret_count += left_ad_list.length + right_ad_list.length;
+	var left_ad_str = left_ad_list.join("");
+	var right_ad_str = right_ad_list.join("");
+	if(left_ad_str != ""){
+		var ad_str = GGAD58_Utils.template_render(left_outer_template, {items : left_ad_str, agenturl : adtype.url, agentname : adtype.name});
+		var left_ad_div = document.getElementById(left_ad_id);
+		if(left_ad_div){
+			var new_div = document.createElement("div");
+			new_div.innerHTML = ad_str;
+			new_div.innerHTML += '<div style="position:absolute;bottom:5px;right:1px"><span style="float:right;font-size:12px;color:#d2d2d2">广告</span></div>';
+			left_ad_div.appendChild(new_div); 
+			$('#'+left_ad_id).css('width','728px');
+			$('#'+left_ad_id).css('position','relative');
+			$('#'+left_ad_id).css('border','1px solid #d2d2d2');
+			if(root_cateid =='9225'){
+				$('#'+left_ad_id).css('width','960px');
+			}
+			if(root_cateid =='187'){
+				$('#'+left_ad_id).css('width','728px');
+			}
+			if (false || root_cateid == '70123' || root_cateid == '70124'){
+				$('#'+left_ad_id).css({"width": "728px", "position": "relative", "border": "1px solid rgb(210, 210, 210)", "margin":"0px 0px 10px 96px"});
+			}
+			if (false==true){
+				$('#'+left_ad_id).css('margin-bottom','-5px');
+				$('#final_bottom_zhuti_2').children().css('padding-bottom','5px');
+			}
+		}
+		_left_num -= left_ad_list.length;
+	}
+	if(right_ad_str != ""){
+		var ad_str = GGAD58_Utils.template_render(right_outer_template, {items : right_ad_str, agenturl : adtype.url, agentname : adtype.name});
+		var right_ad_div = document.getElementById(right_ad_id);
+		if(right_ad_div){
+			$('#'+right_ad_id).css('padding-top','10px')
+			$('#'+right_ad_id).append(ad_str);
+			$("#nearlist").css("display", "none");
+		}
+		_right_num -= right_ad_list.length;
+	}
+	need_total_num = _left_num + _right_num;
+	return ret_count, need_total_num;
+}
+
+
+var baidu_js_suc_flag = '[4]';
+var adtype_flag =0;
+var baidu_js_request_flag = 'true';
+var baidu_afs_request_done = function(baidu_ads){
+	baidu_js_suc_flag = '[200]';
+	var baidu_ads_num = baidu_ads.length;
+	var baidu_ads_num_return = baidu_ads_num;
+	_ad_type_baidu = {
+		id : 2, 
+		link : '<a href="//cpro.baidu.com/" target="_blank" style="color:#585858;">赞助商链接</a>', 
+		sidelink : ''
+	}
+	if("false"=="true"){
+		outer_template_baidu = '<div style="padding-bottom:0px;margin-left:20px;line-height:28px;padding-top:10px">{{items}}</div>';
+		if(baidu_ads_num>=5){
+			outer_template_baidu = '<div style="padding-bottom:5px;margin-left:20px;line-height:28px;padding-top:10px">{{items}}</div>';
+		}
+	}
+	var ret_count = ad_request_done_callback(baidu_ads, _ad_type.baidu, outer_template_baidu, item_template_baidu,'','',5,0,title_length,content_length,0,0);
+	_disp_log_object.baidu_afs = ret_count;
+	if(baidu_ads_num < left_baidu_asp_num){
+		disp_log_func_call();
+		addi_cpro_num = left_baidu_asp_num - baidu_ads_num;
+		document.getElementById(left_cpro_id).innerHTML += $cproHolder;
+		var new_frame = document.createElement("iframe");
+		new_frame.src = "//statictrack.58.com/baidu_cpro_jianli_finalpage.html?v=201403105";
+		new_frame.width = "0";
+		new_frame.height ='0';
+		new_frame.id = 'iframe1_baidu';
+		var baiducpro = document.getElementById("baiduCpro" + $cproIdRandom);
+		baiducpro.appendChild(new_frame);
+		_disp_log_object.baidu_cpro_left = addi_cpro_num;
+	}else{
+		disp_log_func_call();
+	}
+	if(baidu_js_request_flag == 'true'){
+		_disp_log_object.baidu_afs_channel = '14026035_56_pg';
+		_disp_log_object.baidu_afs_channel_id = '-1';
+		var img = new Image();
+		img.src = document.location.protocol + "//track.58.com/bdjsempty.js.gif?req_status="+baidu_js_suc_flag+"&union=baiduNew&adname=14026035_56_pg" + "&channel_id=-1&q_num=" + 5 + "&r_num=" + baidu_ads_num_return + "&pv=" + ret_count + "&keyword=租房|搬家&adtype_flag=" + adtype_flag + "&left_top_disp=" + 0 + "&left_btm_disp=" + ret_count + "&right_disp=" + 0 + "&rightbtm_disp=" + 0 + "&refer=" + window.location.href ;
+	}
+	
+}
+
+if(zhike_adnum>0){
+	zhike_adinfo = zhike_adinfo.substring(0,(zhike_adinfo.length-1));
+	zhike_adinfo = '[' + zhike_adinfo + ']';
+	var img1 = new Image();
+	img1.src = "//track.58.com/zhike_empty.js.gif?terminaltype=pc&pagetype=finalpage&cityname=fy&catename=zufang&zhike_adnum=" + zhike_adnum + "&adinfo=" + zhike_adinfo;
+}
+if (no_zhike_adnum>0){
+	no_zhike_adinfo = no_zhike_adinfo.substring(0,(no_zhike_adinfo.length-1));
+	no_zhike_adinfo = '[' + no_zhike_adinfo + ']';
+	var img2 = new Image();
+	img2.src = "//track.58.com/no_zhike_empty.js.gif?terminaltype=pc&pagetype=finalpage&cityname=fy&catename=zufang&adnum=" + no_zhike_adnum + "&adinfo=" + no_zhike_adinfo;
+}

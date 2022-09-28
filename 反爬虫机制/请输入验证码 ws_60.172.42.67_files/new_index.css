@@ -1,0 +1,215 @@
+@charset "utf-8";
+/*reset部分*/
+html, body, div, span, applet, object, iframe,h1, h2, h3, h4, h5, h6, p, blockquote, pre,a, abbr, acronym, address, big, cite, code,del, dfn, em, img, ins, kbd, q, s, samp,small, strike, strong, sub, sup, tt, var,b, u, i, center,dl, dt, dd, ol, ul, li,fieldset, form, label, legend,table, caption, tbody, tfoot, thead, tr, th, td,article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary,time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+	font-family:  simhei , "microsoft yahei" ;
+}
+input , textarea{
+	border:0;
+	outline:none;
+	text-indent: 10px;
+	-webkit-appearance:none;
+	margin:0;
+	padding:0;
+}
+input::-webkit-input-placeholder {color: #ced4d6;}
+input:-moz-placeholder {color: #ced4d6;}
+input::-moz-placeholder {color: #ced4d6;}
+textarea::-webkit-input-placeholder {color: #ced4d6;}
+textarea:-moz-placeholder {color: #ced4d6;}
+textarea::-moz-placeholder {color: #ced4d6;}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+	background-color: #f0f0f0;
+	font-size: 12px;
+}
+ol, ul , li{
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+body,html {
+	height: 100%;
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+*{
+	-webkit-tap-highlight-color:rgba(255, 255, 255, 0);
+} 
+img {
+	border: 0
+}
+h1,h2,h3,h4,h5,h6 {
+	font-size: 100%;
+	font-weight: normal;
+}
+select,input {
+	vertical-align: middle
+}
+.spacer {
+	clear: both;
+	font-size: 0;
+	height: 0;
+}
+a {
+	color: #333;
+	text-decoration: none
+}
+a: hover {
+	color: #f00;
+}
+/*app长按页面禁止复制等功能*/
+*{
+	/* -webkit-user-select:none; 
+	-webkit-tap-highlight-color:rgba(255, 255, 255, 0); */
+}
+
+/*css部分*/
+body{
+	width: 100%;
+	height: auto;
+	background-color: #fff;
+}
+
+.pop{
+	width: 500px;
+    margin: 8% auto;
+	border: 1px solid #95B8E7;
+}
+
+.pop .title{
+	width: 100%;
+	height: 40px;
+	line-height: 40px;
+	font-size: 14px;
+	color: #0E2D5F;
+	text-indent: 3px;
+	background-color: #E0ECFF;
+	border-bottom: 1px solid #95B8E7;
+}
+
+
+.pop .main{
+	width: 100%;
+	height: auto;
+	background-color: #fff;
+	padding: 30px 0;
+}
+.main .code_img{
+ text-align: center;
+}
+.main .code_img img{
+	width: 130px;
+	height: auto;
+	margin-left: 10%;
+	margin-right: 3%;
+}
+
+.main .code_img em{
+	color: #0E2D5F;
+	font-size: 16px;
+	text-decoration: underline;
+	position: relative;
+	top: -5px;
+	cursor: pointer;
+}
+
+.main .code_num{
+	width: auto;
+	height: 45px;
+	margin: 25px 10% 0;
+	text-align: center;
+}
+
+.main .code_num .code_num_inp{
+	float: left;
+	width: 66%;	
+	height: 30px;
+	line-height: 30px;
+	border: 1px solid #95B8E7;
+	border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	overflow: hidden;
+}
+
+.main .code_num .code_num_inp input{
+	width: 100%;
+	height: auto;
+	font-size: 14px;
+	margin-top: 6px;
+	text-indent: 6px;
+}
+
+.main .code_num .btn_tj{
+	width: 60%;
+	height: 30px;
+	text-align: center;
+	line-height: 30px;
+	color: #0E2D5F;
+	border: 1px solid #95B8E7;
+	background-color: #E0ECFF;
+	font-size: 14px;
+	border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	cursor: pointer;
+}
+
+.main .toast_mess{
+    width: auto;
+    margin: 7px 10% 0;
+    color: #f00;
+    font-size: 16px;
+}
+
+.footer{
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+	height: 50px;
+	line-height: 50px;
+	border-top: 1px solid #e1e1e1;
+	text-align: center;
+	color: #0E2D5F;
+	font-size: 16px;
+}
+
+.footer a{
+	text-decoration: underline;
+	position: relative;
+	top: -2px;
+}
+/*机型适配*/
+@media (min-width: 319px) and (max-width: 374px){
+	.pop{
+		width: 86%;
+		margin: 25% 7% 0;
+	}
+}
+@media (min-width: 375px) and (max-width: 440px){
+	.pop{
+		width: 80%;
+		margin: 25% 10% 0;
+	}
+}

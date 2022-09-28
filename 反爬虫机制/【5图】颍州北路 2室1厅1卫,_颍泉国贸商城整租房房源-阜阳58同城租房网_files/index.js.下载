@@ -1,0 +1,14 @@
+// 主站右侧边栏 limengru 2018.08.08
+function loadJs(url){
+    var headDoc = document.getElementsByTagName('head')[0];
+    var js = document.createElement('script');
+    js.setAttribute('type', 'text/javascript');
+    js.setAttribute('src', url);
+    headDoc.appendChild(js);
+}
+if (typeof jQuery == 'undefined') {
+	loadJs('//j1.58cdn.com.cn/resource/xxzl/public/jquery-1.11.1.min.js');
+}
+setTimeout(function(){
+    loadJs('//j1.58cdn.com.cn/resource/xxzl/public/main.js');
+},50)
